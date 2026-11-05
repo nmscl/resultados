@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
-<head><script id="cm-carrossel">
+<head><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%231d5fd1'/%3E%3Cpath d='M7 19V5m0 1c4-3 7 3 11 0v8c-4 3-7-3-11 0' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"><script id="cm-carrossel">
 let cmVersaoQuadro=0,cmUltimoTick=0,cmMedidas=null;addEventListener("resize",()=>cmVersaoQuadro++);document.addEventListener("fullscreenchange",()=>cmVersaoQuadro++);
 function cmDeslizar(viewport,track,pos){const i=Math.floor(pos);viewport.scrollLeft=i;track.style.transform="translate3d("+(i-pos).toFixed(3)+"px,0,0)";}
 function cmIrmaosTabela(track,key){return [...track.querySelectorAll(".lane-table-scroll")].filter(o=>o.dataset.key===key);}
@@ -65,6 +65,12 @@ window.CMTema=(()=>{
  addEventListener('storage',e=>{if(e.key===K)aplicar();});
  return {pref,atual,definir,ciclar,botao,aplicar};
 })();
+/* O administrador acede a todas as provas, tal como na gestão: a password dele vale nos leitores e no quadro. */
+window.cmAdminComPassword=(estado,password)=>!!password&&(estado?.utilizadores||[]).some(c=>(c.tipo==='administrador'||(c.user==='admin'&&!c.tipo))&&c.pass===password);
+/* O número entre parênteses é o ano de escolaridade equivalente: «1(10)» é o 1.º ano de um curso profissional, ou seja, o 10.º ano. */
+window.cmAnoEquivalente=ano=>{const m=String(ano??'').match(/\(\s*(\d{1,2})\s*[^)]*\)/),n=m?Number(m[1]):NaN;return n>=1&&n<=12?n:null;};
+/* O prazo das autorizações vale até ao fim do dia escolhido, na hora deste aparelho. */
+window.cmPrazoConsentimentosTerminado=(prova,agora=new Date())=>{const m=String(prova?.prazoConsentimentos||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return !!m&&agora>=new Date(+m[1],+m[2]-1,+m[3]+1);};
 /* Avisos que ficam visíveis até serem resolvidos ou fechados. */
 window.CMAvisos=(()=>{
  function mostrar(id,texto){
@@ -2623,7 +2629,7 @@ function distanciaEscalao(k,config) {
         }
         function acessoGestaoValidoQuadro(prova) {
             const conta=contaGestaoValidaQuadro();
-            return !!(conta && prova && !prova.deleted && (prova.criador||'admin')===conta.user);
+            return !!(conta && prova && !prova.deleted && ((prova.criador||'admin')===conta.user || administradorGestaoQuadro()));
         }
         let appState = { provas: [], currentProvaId: null };
         let currentProva = null;
@@ -2650,7 +2656,7 @@ function distanciaEscalao(k,config) {
             const prova=provasDisponiveisNoQuadro().find(p=>p.id===provaPendenteQuadro),conta=contaDaProvaQuadro(prova);
             const input=document.getElementById('password-prova-input'),erro=document.getElementById('password-prova-erro');
             if(!prova || !conta || typeof conta.pass!=='string' || !conta.pass){erro.textContent='A conta responsável por esta prova não está disponível. Verifique a gestão de contas.';return;}
-            if(input.value!==conta.pass){erro.textContent='Password incorreta. Tente novamente.';input.value='';input.focus();return;}
+            if(input.value!==conta.pass&&!cmAdminComPassword(appState,input.value)){erro.textContent='Password incorreta. Tente novamente.';input.value='';input.focus();return;}
             acessoProvaQuadro={id:prova.id,user:conta.user,pass:conta.pass,authVersion:Number(conta.authVersion||1)};
             currentProva=prova;provaPendenteQuadro='';input.value='';
             document.getElementById('password-prova-modal').hidden=true;
@@ -2705,7 +2711,7 @@ function provasDisponiveisNoQuadro() {
     const provas=(appState.provas || []).filter(p=>p && p.id && !p.deleted);
     if(!quadroAbertoPelaGestao)return provas;
     const conta=contaGestaoValidaQuadro();
-    return conta ? provas.filter(p=>(p.criador || 'admin')===conta.user) : [];
+    return conta ? (administradorGestaoQuadro() ? provas : provas.filter(p=>(p.criador || 'admin')===conta.user)) : [];
 }
 
 const reiniciosQuadro = new Map();
@@ -2785,7 +2791,7 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             provaPendenteQuadro=id;
             const conta=contaDaProvaQuadro(prova);
             document.getElementById('password-prova-titulo').textContent=prova.nome || 'Prova';
-            document.getElementById('password-prova-descricao').textContent='Introduza a password de '+(conta?.user || prova.criador || 'admin')+' para consultar os resultados.';
+            document.getElementById('password-prova-descricao').textContent='Introduza a password de '+(conta?.user || prova.criador || 'admin')+' ou de um administrador para consultar os resultados.';
             document.getElementById('password-prova-erro').textContent='';
             document.getElementById('password-prova-input').value='';
             document.getElementById('password-prova-modal').hidden=false;
@@ -3470,7 +3476,7 @@ window.CMVisual=(()=>{
    b.addEventListener('keydown',event=>{if(!['ArrowDown','ArrowUp','ArrowRight','ArrowLeft','Home','End'].includes(event.key))return;event.preventDefault();const active=all('.tab-btn').filter(n=>!n.disabled);let index=active.indexOf(b);index=event.key==='Home'?0:event.key==='End'?active.length-1:(index+(['ArrowDown','ArrowRight'].includes(event.key)?1:-1)+active.length)%active.length;active[index].click();active[index].focus();});
   });
   const links=element('div','visual-sidebar-links');
-  for(const [name,url] of [['Leitor de dorsais','Leitor.html'],['Leitor de consentimentos','Consentimentos.html'],['Todas as aplicações','../../index.html']]){const a=element('a','',name+' ↗');a.href=url;a.target='_blank';a.rel='noopener';links.append(a);}aside.append(links);
+  for(const [name,url] of [['Leitor de dorsais','leitor.html'],['Leitor de consentimentos','consentimentos.html'],['Todas as aplicações','index.html']]){const a=element('a','',name+' ↗');a.href=url;a.target='_blank';a.rel='noopener';links.append(a);}aside.append(links);
   const brand=$('.brand-badge');brand.prepend(mark());rename('.brand-text-title','Corta-Mato');rename('.brand-text-sub','Organização escolar');
   const backups=$('.backup-controls'),items=all(':scope > button',backups),account=items.find(b=>b.id==='btn-menu-utilizadores');
   items.forEach(b=>{if(b.textContent.includes('Backup'))b.textContent='Exportar cópia de segurança';else if(b.textContent.includes('Importar'))b.textContent='Restaurar cópia de segurança';else if(b===account)b.textContent='Contas e utilizadores';else if(b.textContent.includes('Sair'))b.textContent='Terminar sessão';});
@@ -3512,7 +3518,7 @@ window.CMVisual=(()=>{
  }
  function step(panel,n,text){if(panel&&!$('.visual-reader-step',panel)){const p=element('div','visual-reader-step',text);p.dataset.step=n;panel.prepend(p);}}
  function readers(){
-  const header=$('main>header');if(header){header.prepend(mark());const home=element('a','visual-reader-home','Aplicações ↗');home.href='../../index.html';home.target='_blank';home.rel='noopener';header.append(home);}
+  const header=$('main>header');if(header){header.prepend(mark());const home=element('a','visual-reader-home','Aplicações ↗');home.href='index.html';home.target='_blank';home.rel='noopener';header.append(home);}
   if(document.body.classList.contains('visual-dorsais')){
    const proof=$('#proof')?.closest('.panel'),camera=$('#camera')?.closest('.panel'),manual=$('#manual')?.closest('.panel'),history=$('#history')?.closest('.panel');
    proof?.classList.add('visual-reader-proof');camera?.classList.add('visual-reader-camera');manual?.classList.add('visual-reader-manual');history?.classList.add('visual-reader-history');
