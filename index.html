@@ -5670,17 +5670,23 @@ window.CMVisualRefinado=(()=>{
 .cm-som-dlg button.principal{background:#13285c;border-color:#13285c;color:#fff}
 .cm-som-dlg button:disabled{opacity:.45;cursor:not-allowed}
 .cm-som-bts{display:flex;justify-content:flex-end;margin-top:14px}
+.cm-som-dlg p.cm-som-aviso{margin:0 0 10px;padding:8px 10px;border-radius:9px;background:#eef2ff;color:#13285c;font-weight:700;font-size:13px}
 </style>
 <script id="cm-som-certificados">
 // Painel de certificados: música ao destacar um nome. Toca em ciclo até o destaque fechar.
 // Pode ser a mesma para todos ou uma para cada tipo (1.º, 2.º, 3.º lugar e participação).
-// Os ficheiros ficam guardados neste navegador (IndexedDB); não vão para a nuvem.
+// A escolha e os ficheiros ficam na nuvem (Firestore), na conta dona da prova: qualquer equipamento
+// que abra o quadro com essa conta toca a mesma música. Cada ficheiro é guardado em partes
+// (documentos «somAudio_<id>_<n>»), como as imagens da gestão; a escolha fica em «somQuadro_<conta>».
+// Neste navegador fica só uma cópia (IndexedDB) para não voltar a descarregar o ficheiro.
 const CMSomCertificados=(()=>{
- const DB='cortaMatoQuadro',LOJA='audios',CHAVE_MESMO='cm.som.mesmo';
+ const DB='cortaMatoQuadro',LOJA='audios',COL='cortaMatoApp',PARTE=700000,MAX_MB=15,CHAVE_MESMO='cm.som.mesmo',CHAVE_MIGRADO='cm.som.migrado:';
  const TIPOS=[['todos','Todos'],['1','1.º lugar'],['2','2.º lugar'],['3','3.º lugar'],['part','Participação']];
  let ligacao=null,audio=null,aTocar=null,geracao=0,amostra=null;
- const cache=new Map(),urls=new WeakMap();
- const mesmo=()=>{try{return localStorage.getItem(CHAVE_MESMO)!=='0';}catch{return true;}};
+ let dono=null,config=null,desligarConfig=null,migrando=false;
+ const ouvintes=new Set(),blobs=new Map(),urls=new Map(),aEnviar=new Map();
+
+ // ---------- Cópia local (IndexedDB) ----------
  function abrirDB(){
   return ligacao||(ligacao=new Promise((ok,falha)=>{
    const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(LOJA))r.result.createObjectStore(LOJA);};
@@ -5688,59 +5694,189 @@ const CMSomCertificados=(()=>{
   }).catch(e=>{ligacao=null;throw e;}));
  }
  const pedido=(modo,f)=>abrirDB().then(db=>new Promise((ok,falha)=>{const tx=db.transaction(LOJA,modo),p=f(tx.objectStore(LOJA));tx.oncomplete=()=>ok(p?.result);tx.onerror=()=>falha(tx.error);}));
- async function ler(k){if(cache.has(k))return cache.get(k);const v=await pedido('readonly',l=>l.get(k)).catch(()=>null);cache.set(k,v||null);return v||null;}
- async function gravar(k,ficheiro){const v={nome:ficheiro.name,tipo:ficheiro.type,blob:ficheiro};await pedido('readwrite',l=>l.put(v,k));cache.set(k,v);}
- async function apagar(k){await pedido('readwrite',l=>l.delete(k));cache.set(k,null);}
- function url(v){if(!urls.has(v))urls.set(v,URL.createObjectURL(v.blob));return urls.get(v);}
+ const lerLocal=k=>pedido('readonly',l=>l.get(k)).catch(()=>null);
+ const gravarLocal=(k,v)=>pedido('readwrite',l=>l.put(v,k)).catch(()=>{});
+ const apagarLocal=k=>pedido('readwrite',l=>l.delete(k)).catch(()=>{});
+
+ // ---------- Conta e ligação à nuvem ----------
+ function donoAtual(){
+  try{if(typeof criadorFiltroQuadro==='string'&&criadorFiltroQuadro)return criadorFiltroQuadro;}catch{}
+  try{if(typeof currentProva!=='undefined'&&currentProva)return currentProva.criador||'admin';}catch{}
+  return null;
+ }
+ const nuvem=()=>{try{return typeof conectarFirebase==='function'?conectarFirebase():null;}catch{return null;}};
+ const refConfig=(db,u)=>db.collection(COL).doc('somQuadro_'+encodeURIComponent(u));
+ const refParte=(db,id,i)=>db.collection(COL).doc('somAudio_'+id+'_'+i);
+ const avisar=()=>ouvintes.forEach(f=>{try{f();}catch(e){console.warn(e);}});
+ function normalizar(d){
+  const faixas={};
+  for(const [k] of TIPOS){const f=d?.faixas?.[k];if(f&&typeof f.id==='string'&&/^[\w-]+$/.test(f.id)&&Number(f.partes)>0)faixas[k]={id:f.id,nome:String(f.nome||'música'),tipo:String(f.tipo||'audio/mpeg'),partes:Number(f.partes)};}
+  return {existe:!!d,mesmo:d?.mesmo!==false,faixas};
+ }
+ // Liga-se ao documento da conta; muda de documento se a prova (e a conta) mudar.
+ function vigiar(){
+  const u=donoAtual();
+  if(u===dono&&(desligarConfig||!u))return;
+  const db=nuvem();
+  if(u!==dono){desligarConfig?.();desligarConfig=null;config=null;dono=u;avisar();}
+  if(!u||!db)return;
+  desligarConfig=refConfig(db,u).onSnapshot(s=>{
+   if(dono!==u)return;
+   config=normalizar(s.exists?s.data():null);avisar();preCarregar();migrar(u);
+  },e=>{console.warn('Não foi possível ler a música dos certificados na nuvem.',e);if(dono===u){desligarConfig=null;}});
+ }
+ setInterval(vigiar,1500);
+
+ function faixaPara(tipo){if(!config)return null;return config.mesmo?config.faixas.todos||null:config.faixas[tipo]||null;}
+
+ // ---------- Ficheiros ----------
+ const lerDataURL=blob=>new Promise((ok,falha)=>{const r=new FileReader();r.onload=()=>ok(String(r.result));r.onerror=()=>falha(r.error);r.readAsDataURL(blob);});
+ async function idDe(blob){
+  try{const h=await crypto.subtle.digest('SHA-256',await blob.arrayBuffer());return [...new Uint8Array(h)].slice(0,16).map(b=>b.toString(16).padStart(2,'0')).join('');}
+  catch{return Date.now().toString(36)+Math.random().toString(36).slice(2,10);}
+ }
+ async function base64ParaBlob(b64,tipo){
+  try{const r=await fetch('data:'+tipo+';base64,'+b64);return await r.blob();}
+  catch{const bin=atob(b64),bytes=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);return new Blob([bytes],{type:tipo});}
+ }
+ function obterBlob(f){
+  if(!blobs.has(f.id))blobs.set(f.id,(async()=>{
+   const local=await lerLocal('nuvem:'+f.id);if(local?.blob)return local.blob;
+   const db=nuvem();if(!db)throw Error('Sem ligação à nuvem');
+   const docs=await Promise.all(Array.from({length:f.partes},(_,i)=>refParte(db,f.id,i).get()));
+   if(docs.some(d=>!d.exists))throw Error('Música incompleta na nuvem');
+   const blob=await base64ParaBlob(docs.map(d=>d.data().dados||'').join(''),f.tipo);
+   gravarLocal('nuvem:'+f.id,{nome:f.nome,tipo:f.tipo,blob});
+   return blob;
+  })().catch(e=>{blobs.delete(f.id);throw e;}));
+  return blobs.get(f.id);
+ }
+ function urlDe(id,blob){if(!urls.has(id))urls.set(id,URL.createObjectURL(blob));return urls.get(id);}
+ // Descarrega já as músicas escolhidas, para tocarem sem espera quando se clica num nome.
+ function preCarregar(){if(!config)return;const vistos=new Set();for(const f of Object.values(config.faixas))if(!vistos.has(f.id)){vistos.add(f.id);obterBlob(f).catch(e=>console.warn('Música ainda não disponível neste equipamento.',e));}}
+ // Apaga da nuvem as partes de um ficheiro que já nenhum tipo usa.
+ function limparSeOrfao(f){
+  const db=nuvem();if(!db||!f)return;
+  setTimeout(()=>{if(config&&Object.values(config.faixas).some(x=>x.id===f.id))return;
+   for(let i=0;i<f.partes;i++)refParte(db,f.id,i).delete().catch(()=>{});apagarLocal('nuvem:'+f.id);},3000);
+ }
+ async function enviar(k,blob,nome,progresso){
+  const u=dono,db=nuvem();if(!u||!db)throw Error('sem-conta');
+  if(blob.size>MAX_MB*1024*1024)throw Error('grande');
+  const tipo=blob.type||'audio/mpeg',id=await idDe(blob),texto=(await lerDataURL(blob)).replace(/^data:[^,]*,/,''),partes=Math.max(1,Math.ceil(texto.length/PARTE));
+  for(let i=0;i<partes;i++){progresso?.(i,partes);await refParte(db,id,i).set({dados:texto.slice(i*PARTE,(i+1)*PARTE)});}
+  progresso?.(partes,partes);
+  blobs.set(id,Promise.resolve(blob));gravarLocal('nuvem:'+id,{nome,tipo,blob});
+  const antiga=config?.faixas?.[k]||null;
+  await refConfig(db,u).set({faixas:{[k]:{id,nome,tipo,partes,tamanho:blob.size}},atualizadoEm:Date.now()},{merge:true});
+  if(antiga&&antiga.id!==id)limparSeOrfao(antiga);
+ }
+ async function retirar(k){
+  const u=dono,db=nuvem();if(!u||!db)throw Error('sem-conta');
+  const antiga=config?.faixas?.[k]||null;
+  await refConfig(db,u).set({faixas:{[k]:null},atualizadoEm:Date.now()},{merge:true});
+  limparSeOrfao(antiga);
+ }
+ async function definirMesmo(v){const u=dono,db=nuvem();if(!u||!db)throw Error('sem-conta');await refConfig(db,u).set({mesmo:!!v,atualizadoEm:Date.now()},{merge:true});}
+
+ // Versões anteriores guardavam a música só neste navegador: na primeira ligação, passa-a para a nuvem.
+ async function migrar(u){
+  if(migrando||!config)return;
+  try{if(localStorage.getItem(CHAVE_MIGRADO+u))return;}catch{return;}
+  migrando=true;
+  try{
+   let falhou=false;
+   if(!config.existe){let m=null;try{m=localStorage.getItem(CHAVE_MESMO);}catch{}if(m==='0')await definirMesmo(false).catch(()=>{falhou=true;});}
+   for(const [k] of TIPOS){
+    const v=await lerLocal(k);if(!v?.blob)continue;
+    if(dono!==u)return;
+    if(!config.faixas[k]){try{await enviar(k,v.blob,v.nome||'música');}catch(e){falhou=true;console.warn('Não foi possível passar a música para a nuvem.',e);continue;}}
+    await apagarLocal(k);
+   }
+   if(!falhou)try{localStorage.setItem(CHAVE_MIGRADO+u,'1');}catch{}
+  }finally{migrando=false;}
+ }
+
+ // ---------- Tocar ----------
  async function tocar(tipo){
+  vigiar();
   if(aTocar===tipo)return;
   parar();aTocar=tipo;const n=++geracao;
-  const v=mesmo()?await ler('todos'):await ler(tipo);
-  if(n!==geracao||!v)return;
+  const f=faixaPara(tipo);if(!f)return;
+  const blob=await obterBlob(f).catch(e=>{console.warn('Não foi possível obter a música.',e);return null;});
+  if(n!==geracao||!blob)return;
   pararAmostra();
-  audio=new Audio(url(v));audio.loop=true;
+  audio=new Audio(urlDe(f.id,blob));audio.loop=true;
   audio.play().catch(e=>console.warn('Não foi possível tocar a música.',e));
  }
  function parar(){geracao++;aTocar=null;if(audio){audio.pause();audio.currentTime=0;audio=null;}}
  function pararAmostra(){if(amostra){amostra.pause();amostra=null;}}
+
+ // ---------- Janela de escolha ----------
  const el=(tag,props={},...filhos)=>{const e=document.createElement(tag);for(const [k,v] of Object.entries(props)){if(k==='on')for(const [ev,f] of Object.entries(v))e.addEventListener(ev,f);else if(k in e&&k!=='list')e[k]=v;else e.setAttribute(k,v);}e.append(...filhos.flat().filter(x=>x!=null&&x!==false));return e;};
- async function resumo(){
-  if(mesmo()){const v=await ler('todos');return v?'A mesma música para todos: '+v.nome:'Sem música escolhida.';}
-  const partes=[];for(const [k,rot] of TIPOS.slice(1)){const v=await ler(k);if(v)partes.push(rot+': '+v.nome);}
+ function resumo(){
+  if(!dono)return 'Abra uma prova para ver a música escolhida.';
+  if(!config)return 'A ligar à nuvem…';
+  if(config.mesmo){const v=config.faixas.todos;return v?'A mesma música para todos: '+v.nome:'Sem música escolhida.';}
+  const partes=[];for(const [k,rot] of TIPOS.slice(1)){const v=config.faixas[k];if(v)partes.push(rot+': '+v.nome);}
   return partes.length?partes.join(' · '):'Sem música escolhida.';
  }
  function abrir(aoFechar){
+  vigiar();
   document.getElementById('cm-som-dlg')?.remove();
-  const lista=el('div',{}),chk=el('input',{type:'checkbox',id:'cm-som-mesmo'});chk.checked=mesmo();
+  const lista=el('div',{}),aviso=el('p',{className:'cm-som-aviso',role:'status'}),chk=el('input',{type:'checkbox',id:'cm-som-mesmo'});
   const dlg=el('dialog',{id:'cm-som-dlg',className:'cm-som-dlg','aria-labelledby':'cm-som-titulo'},
    el('h3',{id:'cm-som-titulo'},'Música dos certificados'),
-   el('p',{},'Toca quando clica no nome de um atleta no painel de certificados e continua até fechar o destaque. Os ficheiros ficam guardados neste computador.'),
+   el('p',{},'Toca quando clica no nome de um atleta no painel de certificados e continua até fechar o destaque. A música fica guardada na nuvem, na conta da prova: qualquer computador ou televisão que abra o quadro com esta conta toca a mesma música.'),
+   aviso,
    el('label',{className:'cm-som-mesmo'},chk,'Usar a mesma música para todos'),
    lista,
    el('div',{className:'cm-som-bts'},el('button',{type:'button',className:'principal',on:{click:()=>dlg.close()}},'Fechar')));
-  chk.addEventListener('change',()=>{try{localStorage.setItem(CHAVE_MESMO,chk.checked?'1':'0');}catch{}parar();desenhar();});
-  async function desenhar(){
-   const tipos=chk.checked?[TIPOS[0]]:TIPOS.slice(1),linhas=[];
+  chk.addEventListener('change',async()=>{const v=chk.checked;chk.disabled=true;parar();try{await definirMesmo(v);}catch(e){chk.checked=!v;alert('Não foi possível guardar a opção na nuvem. Verifique a ligação à internet.');}chk.disabled=false;desenhar();});
+  function desenhar(){
+   const pronto=!!(dono&&config);
+   aviso.textContent=!dono?'Escolha primeiro uma prova no quadro: a música fica guardada na conta dessa prova.':!config?'A ligar à nuvem…':'Conta: '+dono;
+   chk.disabled=!pronto;if(pronto)chk.checked=config.mesmo;
+   const tipos=pronto&&!config.mesmo?TIPOS.slice(1):[TIPOS[0]],linhas=[];
    for(const [k,rot] of tipos){
-    const v=await ler(k),entrada=el('input',{type:'file',accept:'audio/*',hidden:true});
-    const nome=el('span',{className:'cm-som-ficheiro'+(v?'':' vazio'),title:v?.nome||''},v?v.nome:'Sem música');
-    entrada.addEventListener('change',async()=>{const f=entrada.files?.[0];if(!f)return;if(!/^audio\//.test(f.type)&&!/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i.test(f.name)){alert('Escolha um ficheiro de áudio (MP3, WAV, OGG, M4A…).');return;}try{await gravar(k,f);}catch(e){alert('Não foi possível guardar a música neste navegador.');return;}parar();desenhar();});
-    const ouvir=el('button',{type:'button',disabled:!v,on:{click:()=>{if(amostra){pararAmostra();ouvir.textContent='Ouvir';return;}parar();amostra=new Audio(url(v));amostra.addEventListener('ended',()=>{amostra=null;ouvir.textContent='Ouvir';});amostra.play().catch(()=>{});ouvir.textContent='Parar';}}},'Ouvir');
+    const v=pronto?config.faixas[k]||null:null,envio=aEnviar.get(k);
+    const entrada=el('input',{type:'file',accept:'audio/*',hidden:true});
+    const nome=el('span',{className:'cm-som-ficheiro'+(v||envio?'':' vazio'),title:v?.nome||''},envio?envio:v?v.nome:'Sem música');
+    entrada.addEventListener('change',async()=>{
+     const f=entrada.files?.[0];if(!f)return;
+     if(!/^audio\//.test(f.type)&&!/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i.test(f.name)){alert('Escolha um ficheiro de áudio (MP3, WAV, OGG, M4A…).');return;}
+     if(f.size>MAX_MB*1024*1024){alert('O ficheiro tem '+(f.size/1048576).toFixed(1)+' MB. Escolha uma música até '+MAX_MB+' MB (um MP3 de 3 a 5 minutos tem normalmente 3 a 8 MB).');return;}
+     parar();pararAmostra();aEnviar.set(k,'A enviar para a nuvem…');desenhar();
+     try{await enviar(k,f,f.name,(i,t)=>{aEnviar.set(k,'A enviar para a nuvem… '+Math.round(i/t*100)+'%');if(dlg.open)desenhar();});}
+     catch(e){alert(e?.message==='sem-conta'?'Escolha primeiro uma prova no quadro.':'Não foi possível guardar a música na nuvem. Verifique a ligação à internet e tente de novo.');console.warn(e);}
+     aEnviar.delete(k);if(dlg.open)desenhar();
+    });
+    const ouvir=el('button',{type:'button',disabled:!v||!!envio,on:{click:async()=>{
+     if(amostra){pararAmostra();ouvir.textContent='Ouvir';return;}
+     parar();ouvir.textContent='A carregar…';ouvir.disabled=true;
+     const blob=await obterBlob(v).catch(()=>null);ouvir.disabled=false;
+     if(!blob){ouvir.textContent='Ouvir';alert('Não foi possível descarregar a música. Verifique a ligação à internet.');return;}
+     amostra=new Audio(urlDe(v.id,blob));amostra.addEventListener('ended',()=>{amostra=null;ouvir.textContent='Ouvir';});amostra.play().catch(()=>{});ouvir.textContent='Parar';
+    }}},'Ouvir');
     linhas.push(el('div',{className:'cm-som-linha'},el('strong',{},rot),nome,
-     el('div',{className:'cm-som-acoes'},entrada,el('button',{type:'button',on:{click:()=>entrada.click()}},v?'Trocar…':'Escolher música…'),ouvir,
-      el('button',{type:'button',disabled:!v,on:{click:async()=>{pararAmostra();parar();await apagar(k).catch(()=>{});desenhar();}}},'Retirar'))));
+     el('div',{className:'cm-som-acoes'},entrada,
+      el('button',{type:'button',disabled:!pronto||!!envio,on:{click:()=>entrada.click()}},v?'Trocar…':'Escolher música…'),ouvir,
+      el('button',{type:'button',disabled:!v||!!envio,on:{click:async()=>{pararAmostra();parar();try{await retirar(k);}catch(e){alert('Não foi possível retirar a música. Verifique a ligação à internet.');}}}},'Retirar'))));
    }
    lista.replaceChildren(...linhas);
   }
-  dlg.addEventListener('close',()=>{pararAmostra();setTimeout(()=>dlg.remove(),0);if(typeof aoFechar==='function')aoFechar();});
+  const aoMudar=()=>{if(dlg.open&&!amostra)desenhar();};ouvintes.add(aoMudar);
+  dlg.addEventListener('close',()=>{ouvintes.delete(aoMudar);pararAmostra();setTimeout(()=>dlg.remove(),0);if(typeof aoFechar==='function')aoFechar();});
   document.body.append(dlg);dlg.showModal();desenhar();
  }
  // A escolha da música está nas «Configurações do quadro»; ao sair da entrega de certificados, a música para.
  function ligarBotao(){
   const bt=document.getElementById('cm-som-config'),estado=document.getElementById('cm-som-config-estado'),vista=document.getElementById('select-vista-quadro');
-  const atualizar=()=>resumo().then(t=>{if(estado)estado.textContent=t;}).catch(()=>{});
-  bt?.addEventListener('click',()=>abrir(atualizar));atualizar();
+  const atualizar=()=>{if(estado)estado.textContent=resumo();};
+  ouvintes.add(atualizar);
+  bt?.addEventListener('click',()=>abrir(atualizar));
   vista?.addEventListener('change',()=>{if(vista.value!=='entrega')parar();});
+  vigiar();atualizar();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ligarBotao);else ligarBotao();
  window.addEventListener('pagehide',parar);
