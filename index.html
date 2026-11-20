@@ -1886,7 +1886,7 @@ const CMPartilhaResultados=(()=>{
  function projetar(prova){
   const alunos=prova.participantes || [],voluntarios=alunos.filter(a=>a.voluntario),porDorsal=new Map(alunos.map((a,i)=>[String(a.dorsal),{a,i}]));
   const out=campos(prova,['id','nome','nomeEscola','tituloDorsal','anoLetivo','dataProva']);
-  out.escaloesConfig=Object.fromEntries(Object.entries(prova.escaloesConfig || {}).map(([id,cfg])=>[id,campos(cfg,['nome','ativo','voltas','distanciaMetros','horaArranqueMs','horaFimMs','reinicioMs','revisaoPista','anoMin','anoMax'])]));
+  out.escaloesConfig=Object.fromEntries(Object.entries(prova.escaloesConfig || {}).map(([id,cfg])=>[id,campos(cfg,['nome','ativo','voltas','distanciaMetros','horaArranqueMs','horaFimMs','reinicioMs','revisaoPista','anoMin','anoMax','modo'])]));
   // Process numbers become local join keys. Unclassified pupils contribute only
   // category/count data; the public document contains no account or consent data.
   out.participantes=alunos.flatMap((a,i)=>a.voluntario?[]:[{...campos(a,['dorsal','ano','turma','escalaoId','escalaoCorridaId','genero','ativo','alf','nee','limitacoesFuncionais']),processo:'p'+i}]);
@@ -2906,6 +2906,67 @@ const CMPartilhaResultados=(()=>{
     margin-top: .15em;
     font-size: max(12px, calc(var(--f) * .66));
   }
+
+  /* Prova Adaptada «Apenas participar»: lista de nomes, sem lugares */
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-participantes {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 11em), 1fr));
+    grid-auto-rows: auto;
+    align-content: start;
+  }
+
+  body.cm-modo-podio .podio-atleta[data-lugar="p"] {
+    --podio-medalha: #8b5cf6;
+    --podio-medalha-fundo: #ede9fe;
+    --podio-medalha-texto: #4c1d95;
+  }
+
+  html[data-tema="escuro"] body.cm-modo-podio .podio-atleta[data-lugar="p"] {
+    --podio-medalha-fundo: #2e1f5e;
+    --podio-medalha-texto: #ddd6fe;
+  }
+
+  body.cm-modo-podio .podio-estado-participacao {
+    color: var(--c-violet, #6d28d9);
+  }
+}
+
+@media screen {
+  /* Coluna ao vivo da Prova Adaptada «Apenas participar»: resumo em vez do pódio */
+  .lane-podium .lane-participacao {
+    grid-row: 1 / -1;
+    grid-column: 1 / -1;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 4px;
+    min-height: 0;
+    overflow: hidden;
+    padding: 8px;
+    border: 1px dashed rgba(139, 92, 246, .55);
+    border-radius: 12px;
+    background: rgba(139, 92, 246, .08);
+    text-align: center;
+  }
+
+  .lane-participacao strong {
+    color: var(--c-ink, #0f1c2e);
+    font-size: clamp(28px, calc(var(--podium-height, 230px) * .28), 64px);
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .lane-participacao span {
+    color: var(--c-text, #34425a);
+    font-weight: 700;
+  }
+
+  .lane-participacao small {
+    color: var(--c-muted, #5d6a80);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
 }
 
 @media screen {
@@ -3441,6 +3502,120 @@ const CMPartilhaResultados=(()=>{
     }
   }
 
+  /* PROVA ADAPTADA «Apenas participar» · todos os participantes, sem lugares */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-estado-participacao {
+    border-color: #c4b5fd8c;
+    background: #a78bfa24;
+    color: #e4dcff;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cena .podio-participacao {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, max(190px, 21cqw)), 1fr));
+    align-content: center;
+    gap: 2cqh 1.6cqw;
+    margin: 0;
+    padding: 3cqh max(4cqw, 10px) 11cqh;
+    overflow: auto;
+    list-style: none;
+    transform-origin: 50% 50%;
+    transition: filter var(--podio-transicao), transform var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-participante {
+    display: grid;
+    min-width: 0;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-premiado {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    align-content: center;
+    gap: 1cqh;
+    width: 100%;
+    min-height: clamp(96px, 20cqh, 220px);
+    margin: 0;
+    padding: 2cqh 1.4cqw;
+    border: 1px solid #ffffff2e;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff17, #ffffff08);
+    box-shadow: 0 10px 24px #0006;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    transition: transform var(--podio-transicao), border-color var(--podio-transicao), background-color var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-premiado:hover {
+    transform: translateY(-3px);
+    border-color: #c4b5fd99;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-premiado:focus-visible {
+    outline: 3px solid #ffd76a;
+    outline-offset: 3px;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-estrela {
+    display: grid;
+    place-items: center;
+    width: clamp(30px, min(7cqh, 4.4cqw), 64px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, #f1eaff 0 12%, #a78bfa 50%, #5b3fc4 100%);
+    box-shadow: inset 0 0 0 3px #ffffff40, 0 4px 12px #0007;
+    color: #fff;
+    font-size: clamp(16px, min(3.6cqh, 2.3cqw), 34px);
+    line-height: 1;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-nome {
+    color: #fff;
+    font-size: clamp(15px, min(4cqh, 2.2cqw), 40px);
+    font-weight: 850;
+    line-height: 1.12;
+    text-decoration: none !important;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-detalhe {
+    grid-column: auto;
+    color: #c8d5ef;
+    font-size: clamp(12px, min(2.4cqh, 1.4cqw), 22px);
+    font-weight: 600;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque] .podio-participacao {
+    filter: blur(clamp(6px, 1.6cqh, 18px)) brightness(.42) saturate(.7);
+    transform: scale(1.03);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco[data-lugar="p"] {
+    --medalha-claro: #f1eaff;
+    --medalha: #a78bfa;
+    --medalha-escuro: #5b3fc4;
+    --bloco-tinta: #ffffff;
+    --foco-luz: #b8a3ff8c;
+    --foco-texto: #ddd2ff;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco[data-lugar="p"] .podio-medalha b {
+    text-shadow: 0 1px 2px #0006;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao,
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-participacao .podio-premiado {
+      transition: none !important;
+      transform: none !important;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia :is(.podio-coluna, .podio-palco, .podio-foco, .podio-escalao-cabecalho) {
       transition: none !important;
@@ -3720,6 +3895,14 @@ function distanciaEscalao(k,config) {
             try {
                 const sessao=JSON.parse(localStorage.getItem('cortaMatoQuadroGestao:'+criadorFiltroQuadro)||localStorage.getItem('cortaMatoAcessoQuadroGestao')||'null');
                 if(sessao && contextoQuadro.get('sessao') && sessao.token===contextoQuadro.get('sessao') && sessao.user===criadorFiltroQuadro && (!sessao.expires||sessao.expires>Date.now()))return sessao;
+            }catch(e){}
+            // Quando o navegador não deixou guardar a sessão, a gestão entrega-a no nome deste separador.
+            try {
+                const nome=String(window.name||''),prefixo='cmQuadroGestao:';
+                if(nome.startsWith(prefixo)){
+                    const sessao=JSON.parse(nome.slice(prefixo.length));
+                    if(sessao && contextoQuadro.get('sessao') && sessao.token===contextoQuadro.get('sessao') && sessao.user===criadorFiltroQuadro && sessao.expires>Date.now())return sessao;
+                }
             }catch(e){}
             return null;
         }
@@ -4309,6 +4492,10 @@ function agruparColunasALFQuadro(keys,colunas,config,participantes){
  return output.join('');
 }
 
+// Prova Adaptada «Apenas participar» (opção na gestão): sem lugares, sem pódio e sem tempos à vista.
+function quadroSemLugares(escalaoId, prova = currentProva) {
+ return escalaoId === 'adaptada' && prova?.escaloesConfig?.adaptada?.modo === 'participacao';
+}
 function resultadoValidoNoQuadro(r) {
  return !r.desistencia&&!r.desqualificado&&r.tempoProvaMs!=null&&r.tempoProvaMs!==''&&Number.isFinite(Number(r.tempoProvaMs))&&Number(r.tempoProvaMs)>=0;
 }
@@ -4334,7 +4521,10 @@ function atualizarQuadroCompleto() {
  const visiveis=quadroConfig.provasVisiveis==='todas'||quadroConfig.provasVisiveis==='automatico'&&concluidas?keys:keys.filter(k=>config[k]?.horaArranqueMs&&!config[k].horaFimMs);
  const colunas=new Map(['todas',...visiveis].map(k=>{
  const all=k==='todas', ec=config[k]||{}, enrolled=participants.filter(a=>a.ativo!==false&&(all||a.escalaoId===k)).length;
- const categoryResults=results.filter(r=>all||r.escalaoId===k), finishers=categoryResults.filter(valid).sort((a,b)=>(a.tempoProvaMs||0)-(b.tempoProvaMs||0));
+ // A Prova Adaptada sem lugares não entra na classificação geral nem tem pódio.
+ const semLugares=!all&&quadroSemLugares(k);
+ const categoryResults=results.filter(r=>all?!quadroSemLugares(r.escalaoId):r.escalaoId===k), finishers=categoryResults.filter(valid).sort((a,b)=>(a.tempoProvaMs||0)-(b.tempoProvaMs||0));
+ if(semLugares)return [k,colunaParticipacaoQuadro(k,ec,enrolled,categoryResults,finishers,config,valid)];
  const running=all?keys.some(key=>config[key]?.horaArranqueMs&&!config[key]?.horaFimMs):!!ec.horaArranqueMs&&!ec.horaFimMs, distance=all?null:distanciaEscalao(k,ec), gender=all?'Classificação geral':k==='adaptada'?'Classificação conjunta':ec.grupoClassificacaoALF || (k.endsWith('_F')?'Feminino':k.endsWith('_M')?'Masculino':'Adaptado');
  const finished=all?keys.length>0&&keys.every(key=>config[key]?.horaFimMs):escalaoConcluidoNoQuadro(k,config);
  const name=all?'Classificação geral':ec.nome||categoryResults[0]?.escalaoNome||k;
@@ -4358,10 +4548,21 @@ function atualizarQuadroCompleto() {
  viewport.scrollLeft=horizontalPosition;
  iniciarAutoScrollTabela();
 }
+// Coluna da Prova Adaptada «Apenas participar»: quem concluiu, por ordem alfabética, sem lugares nem tempos.
+function colunaParticipacaoQuadro(k,ec,enrolled,categoryResults,finishers,config,valid){
+ const running=!!ec.horaArranqueMs&&!ec.horaFimMs, finished=escalaoConcluidoNoQuadro(k,config), name=ec.nome||categoryResults[0]?.escalaoNome||'Prova Adaptada', distance=distanciaEscalao(k,ec);
+ const porNome=(a,b)=>String(a.nome||'').localeCompare(String(b.nome||''),'pt-PT',{sensitivity:'base'})||String(a.dorsal).localeCompare(String(b.dorsal),'pt-PT',{numeric:true});
+ const lista=[...finishers.slice().sort(porNome),...categoryResults.filter(r=>!valid(r)).sort(porNome)];
+ const rows=lista.map(r=>`<tr><td><span class="cell-value"${r.desqualificado?' title="Desclassificado" aria-label="Desclassificado"':r.desistencia?'':' title="Participou" aria-label="Participou"'}>${r.desistencia?'DES':r.desqualificado?'DSC':'✓'}</span></td><td><span class="cell-value">${safeText(r.dorsal)}</span></td><td><span class="table-athlete">${safeText(r.nome)}</span><span class="table-class">${athleteClass(r)?'Turma '+safeText(athleteClass(r)):'Turma —'}</span></td><td><span class="cell-value">${valid(r)?'Concluiu':'—'}</span></td></tr>`).join('');
+ const vazio=`<tr><td colspan="4" class="lane-empty">${finished?'Prova terminada.':'Os participantes aparecem à medida que chegam à meta.'}</td></tr>`;
+ const estado=`<span class="lane-status ${running?'running':''}">${running?'● Em pista':finished?'Concluído':'A aguardar'}</span>`;
+ const resumo=`<div class="lane-participacao"><strong>${finishers.length}</strong><span>${finishers.length===1?'atleta concluiu':'atletas concluíram'} a prova</span><small>Participação · sem lugares</small></div>`;
+ return `<article class="race-lane lane-adaptada lane-participacao-modo" aria-label="${safeText(name)}"><div class="lane-heading"><div class="lane-kicker"><span>Participação</span>${estado}</div><h3>${safeText(name)}</h3><div class="lane-metrics"><span>${distance?distance.toLocaleString('pt-PT')+' metros':'Distância por definir'}${ec.voltas?' · '+safeText(ec.voltas)+' '+(ec.voltas===1?'volta':'voltas'):''}</span><span class="lane-timer" data-timer="${safeText(k)}">${ec.horaArranqueMs?formatarTempoLongo(Math.max(0,(ec.horaFimMs||Date.now())-ec.horaArranqueMs)):'00:00:00'}</span></div><div class="lane-stats"><span>${enrolled} inscritos</span><span>${finishers.length} na meta</span></div></div><div class="lane-podium">${resumo}</div><div class="lane-table-title"><span>Participantes</span><span class="${finished?'race-finished-label':''}">${finished?'Prova terminada':lista.length+' atletas'}</span></div><div class="lane-table-scroll" data-key="${safeText(k)}" tabindex="0" aria-label="Participantes de ${safeText(name)}"><table class="lane-table"><thead><tr><th scope="col">Estado</th><th scope="col">Dorsal</th><th scope="col">Atleta / Turma</th><th scope="col">Prova</th></tr></thead><tbody>${rows||vazio}</tbody></table></div></article>`;
+}
 function atualizarUltimasChegadas(results){
  const list=results.filter(r=>!r.desistencia&&!r.desqualificado).slice(-8).reverse();
  const track=document.getElementById('arrivals-track');
- const html=list.map(r=>{const position=results.filter(a=>a.escalaoId===r.escalaoId&&!a.desistencia&&!a.desqualificado).sort((a,b)=>a.tempoProvaMs-b.tempoProvaMs).indexOf(r)+1;return `<span class="arrival-item"><b>${safeText(r.nome)}</b><span>Dorsal ${safeText(r.dorsal)}${athleteClass(r)?' · Turma '+safeText(athleteClass(r)):''}</span><span>${safeText(r.escalaoNome||currentProva?.escaloesConfig?.[r.escalaoId]?.nome||r.escalaoId)}</span><strong>${formatarTempo(r.tempoProvaMs)}</strong><span>${position}º lugar</span></span>`;}).join('');
+ const html=list.map(r=>{const semLugares=quadroSemLugares(r.escalaoId);const position=results.filter(a=>a.escalaoId===r.escalaoId&&!a.desistencia&&!a.desqualificado).sort((a,b)=>a.tempoProvaMs-b.tempoProvaMs).indexOf(r)+1;return `<span class="arrival-item"><b>${safeText(r.nome)}</b><span>Dorsal ${safeText(r.dorsal)}${athleteClass(r)?' · Turma '+safeText(athleteClass(r)):''}</span><span>${safeText(r.escalaoNome||currentProva?.escaloesConfig?.[r.escalaoId]?.nome||r.escalaoId)}</span><strong>${semLugares?'✓ Concluiu':formatarTempo(r.tempoProvaMs)}</strong><span>${semLugares?'Participação':position+'º lugar'}</span></span>`;}).join('');
  if(track.dataset.signature===html)return;track.dataset.signature=html;
  track.innerHTML=list.length?`<div class="arrivals-batch">${html}</div><div class="arrivals-batch" aria-hidden="true">${html}</div>`:'<span class="arrivals-empty">A aguardar as primeiras chegadas à meta.</span>';
  track.classList.toggle('has-arrivals',list.length>0);
@@ -4658,7 +4859,9 @@ const CMQuadroPodio = (() => {
             const tipo = id === 'adaptada' ? 'adaptada' : id.startsWith('alf_') ? 'lf' : id.endsWith('_F') ? 'feminino' : '';
             const grupo = {
                 id, tipo, nome: String(escalao?.nome || fallback || id), atletas: [],
-                provisorio: Boolean(escalao?.horaArranqueMs && !escalao.horaFimMs)
+                provisorio: Boolean(escalao?.horaArranqueMs && !escalao.horaFimMs),
+                // Prova Adaptada «Apenas participar»: todos os que concluíram, sem lugares.
+                participacao: quadroSemLugares(id, prova)
             };
             porEscalao.set(id, grupo);
             return grupo;
@@ -4673,7 +4876,7 @@ const CMQuadroPodio = (() => {
             const { dorsal, processo, nome, escalaoNome, escalaoId, tempoProvaMs } = resultado;
             const id = String(escalaoId || idsPorNome.get(escalaoNome) || escalaoNome || 'geral');
             const grupo = porEscalao.get(id) || incluir(id, escalaoNome || (id === 'geral' ? 'Geral' : id));
-            if (grupo.atletas.length === lugares.length) continue;
+            if (!grupo.participacao && grupo.atletas.length === lugares.length) continue;
             grupo.atletas.push({
                 chave: JSON.stringify([dorsal ?? '', processo ?? '', dorsal == null && processo == null ? nome : '']),
                 nome: nome || 'Nome indisponível',
@@ -4681,6 +4884,13 @@ const CMQuadroPodio = (() => {
                 dorsal,
                 tempo: formatarTempo(tempoProvaMs)
             });
+        }
+        // Sem lugares, a ordem é alfabética: a ordem de chegada também seria uma classificação.
+        for (const grupo of porEscalao.values()) {
+            if (!grupo.participacao) continue;
+            grupo.atletas.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-PT', { sensitivity: 'base' }) ||
+                String(a.dorsal ?? '').localeCompare(String(b.dorsal ?? ''), 'pt-PT', { numeric: true }));
+            for (const atleta of grupo.atletas) delete atleta.tempo;
         }
         return [...porEscalao.values()].sort((a, b) => getOrdemEscalao(a.id) - getOrdemEscalao(b.id) ||
             a.nome.localeCompare(b.nome, 'pt-PT', { numeric: true, sensitivity: 'base' }));
@@ -4692,8 +4902,9 @@ const CMQuadroPodio = (() => {
         cartao.dataset.tipo = grupo.tipo;
         const cabecalho = elemento('div', 'podio-escalao-cabecalho');
         cabecalho.append(elemento('h3', '', grupo.nome));
-        if (grupo.provisorio && grupo.atletas.length) cabecalho.append(elemento('span', 'podio-estado', 'Provisório'));
-        if (!grupo.atletas.length) cabecalho.append(elemento('p', 'podio-sem-lugar', 'Sem atletas classificados'));
+        if (grupo.participacao) cabecalho.append(elemento('span', 'podio-estado podio-estado-participacao', grupo.provisorio && grupo.atletas.length ? 'Participação · provisório' : 'Participação'));
+        else if (grupo.provisorio && grupo.atletas.length) cabecalho.append(elemento('span', 'podio-estado', 'Provisório'));
+        if (!grupo.atletas.length) cabecalho.append(elemento('p', 'podio-sem-lugar', grupo.participacao ? 'Ainda sem atletas na meta' : 'Sem atletas classificados'));
         cartao.append(cabecalho);
         return cartao;
     }
@@ -4708,6 +4919,24 @@ const CMQuadroPodio = (() => {
     function cartaoClassificacao(grupo) {
         const cartao = criarCartaoEscalao(grupo);
         if (!grupo.atletas.length) return cartao;
+        if (grupo.participacao) {
+            // Só a lista de quem participou: sem lugar e sem tempo.
+            const lista = elemento('ul', 'podio-lugares podio-participantes');
+            lista.setAttribute('role', 'list');
+            for (const atleta of grupo.atletas) {
+                const linha = elemento('li');
+                const ficha = elemento('div', 'podio-atleta');
+                ficha.dataset.lugar = 'p';
+                const marca = elemento('span', 'podio-lugar', '✓');
+                marca.setAttribute('aria-label', 'Participou');
+                marca.title = 'Participou';
+                ficha.append(marca, identidadeAtleta(atleta, atleta.turma));
+                linha.append(ficha);
+                lista.append(linha);
+            }
+            cartao.append(lista);
+            return cartao;
+        }
         const lista = elemento('ol', 'podio-lugares');
         lista.setAttribute('role', 'list');
         for (const [indice, atleta] of grupo.atletas.entries()) {
@@ -4736,11 +4965,13 @@ const CMQuadroPodio = (() => {
     }
 
     function cartaoEntrega(grupo) {
+        // Prova Adaptada «Apenas participar»: em vez do pódio, todos os participantes, sem lugares.
+        const participacao = Boolean(grupo.participacao);
         const cartao = criarCartaoEscalao(grupo, 'podio-cerimonia');
         const cena = elemento('div', 'podio-cena');
-        const palco = elemento('ol', 'podio-lugares podio-palco');
+        const palco = elemento('ol', participacao ? 'podio-lugares podio-participacao' : 'podio-lugares podio-palco');
         palco.setAttribute('role', 'list');
-        palco.setAttribute('aria-label', 'Pódio · ' + grupo.nome);
+        palco.setAttribute('aria-label', (participacao ? 'Participantes · ' : 'Pódio · ') + grupo.nome);
         // Camada de destaque: nome do atleta em grande sobre o pódio desfocado.
         const foco = elemento('div', 'podio-foco');
         foco.setAttribute('role', 'button');
@@ -4749,17 +4980,18 @@ const CMQuadroPodio = (() => {
 
         function preencherFoco(atleta, indice) {
             const numero = String(indice + 1);
+            const rotulo = participacao ? 'Participação' : numero + 'º lugar';
             const detalhe = detalheEntrega(atleta);
             const raios = elemento('span', 'podio-foco-raios');
             raios.setAttribute('aria-hidden', 'true');
-            const partes = [raios, medalha(numero), elemento('span', 'podio-foco-lugar', numero + 'º lugar'),
+            const partes = [raios, medalha(participacao ? '★' : numero), elemento('span', 'podio-foco-lugar', rotulo),
                 elemento('strong', 'podio-foco-nome', atleta.nome)];
             if (detalhe) partes.push(elemento('span', 'podio-foco-detalhe', detalhe));
             partes.push(elemento('span', 'podio-foco-escalao', grupo.nome),
-                elemento('span', 'podio-foco-dica', 'Clique novamente para voltar ao pódio'));
-            foco.dataset.lugar = numero;
+                elemento('span', 'podio-foco-dica', participacao ? 'Clique novamente para voltar aos participantes' : 'Clique novamente para voltar ao pódio'));
+            foco.dataset.lugar = participacao ? 'p' : numero;
             foco.dataset.atleta = atleta.chave;
-            foco.setAttribute('aria-label', numero + 'º lugar · ' + atleta.nome + (detalhe ? ' · ' + detalhe : '') + '. Voltar ao pódio');
+            foco.setAttribute('aria-label', rotulo + ' · ' + atleta.nome + (detalhe ? ' · ' + detalhe : '') + (participacao ? '. Voltar aos participantes' : '. Voltar ao pódio'));
             foco.replaceChildren(...partes);
         }
 
@@ -4771,9 +5003,9 @@ const CMQuadroPodio = (() => {
                 if (ativa) selecionada = ficha;
             }
             if (selecionada) {
-                const indice = Number(selecionada.dataset.lugar) - 1;
+                const indice = Number(selecionada.dataset.indice);
                 preencherFoco(grupo.atletas[indice], indice);
-                cartao.dataset.destaque = selecionada.dataset.lugar;
+                cartao.dataset.destaque = selecionada.dataset.indice;
                 foco.tabIndex = 0;
                 foco.removeAttribute('aria-hidden');
             } else {
@@ -4793,11 +5025,11 @@ const CMQuadroPodio = (() => {
         }
 
         function fechar() {
-            const lugar = cartao.dataset.destaque;
-            if (!lugar) return;
+            const indice = cartao.dataset.destaque;
+            if (indice == null) return;
             escolhido = null;
             aplicarDestaque();
-            palco.querySelector('button.podio-premiado[data-lugar="' + lugar + '"]')?.focus({ preventScroll: true });
+            palco.querySelector('button.podio-premiado[data-indice="' + indice + '"]')?.focus({ preventScroll: true });
         }
         fecharDestaque = fechar;
 
@@ -4807,6 +5039,29 @@ const CMQuadroPodio = (() => {
             evento.preventDefault();
             fechar();
         });
+
+        if (participacao) {
+            // Cada participante é um cartão com o nome; clicar põe-no em destaque, como no pódio.
+            for (const [indice, atleta] of grupo.atletas.entries()) {
+                const item = elemento('li', 'podio-participante');
+                const ficha = elemento('button', 'podio-atleta podio-premiado');
+                ficha.type = 'button';
+                ficha.dataset.lugar = 'p';
+                ficha.dataset.indice = String(indice);
+                ficha.dataset.atleta = atleta.chave;
+                ficha.setAttribute('aria-label', 'Participou · ' + atleta.nome);
+                const estrela = elemento('span', 'podio-estrela', '★');
+                estrela.setAttribute('aria-hidden', 'true');
+                ficha.append(estrela, identidadeAtleta(atleta, detalheEntrega(atleta)));
+                ficha.addEventListener('click', () => abrir(atleta));
+                item.append(ficha);
+                palco.append(item);
+            }
+            cena.append(foco, palco);
+            cartao.append(cena);
+            aplicarDestaque();
+            return cartao;
+        }
 
         for (const [indice, lugar] of lugares.entries()) {
             const numero = String(indice + 1);
@@ -4818,6 +5073,7 @@ const CMQuadroPodio = (() => {
             degrau.append(elemento('b', '', numero));
             const ficha = elemento(atleta ? 'button' : 'div', 'podio-atleta podio-premiado');
             ficha.dataset.lugar = numero;
+            ficha.dataset.indice = String(indice);
             if (atleta) {
                 ficha.type = 'button';
                 ficha.dataset.atleta = atleta.chave;
