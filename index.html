@@ -1684,7 +1684,7 @@ table.board-table thead,table.board-table th { background:var(--panel-deep); col
 .header-brand-group,.brand-title-box{min-width:0}.brand-badge-box{flex:none}.brand-title-box{flex:1}.brand-title-box #activity-name{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;white-space:normal;line-height:1.2}
 .fullscreen-exit-icon{display:none}.fullscreen-exit-icon svg{width:22px;height:22px}
 body.is-fullscreen .scoreboard-header{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;min-height:0;padding:12px 24px;gap:16px}
-body.is-fullscreen .event-selector-box,body.is-fullscreen #btn-rotate,body.is-fullscreen #btn-config-quadro,body.is-fullscreen .results-toolbar,body.is-fullscreen .fullscreen-enter-icon,body.is-fullscreen .fullscreen-label{display:none}
+body.is-fullscreen .event-selector-box,body.is-fullscreen .results-toolbar,body.is-fullscreen .fullscreen-enter-icon,body.is-fullscreen .fullscreen-label{display:none}
 body.is-fullscreen .header-brand-group{gap:14px}body.is-fullscreen .header-center-info{display:flex;align-items:center;flex-direction:row;width:auto;margin:0;gap:0}
 body.is-fullscreen .header-controls{display:flex;width:auto;justify-content:flex-end;align-items:center;flex-wrap:nowrap;gap:8px}
 body.is-fullscreen .clock-display{display:block;font-size:20px;padding:0 5px;white-space:nowrap}
@@ -1825,14 +1825,14 @@ body.is-fullscreen .race-lane{flex:0 0 var(--lane-width);width:var(--lane-width)
 
 </style>
 <script id="cm-auto-data">
-function escutarDadosAutomaticosCM(referencia,receber,falhar){
+function escutarDadosAutomaticosCM(referencia,receber,falhar,sincronizarPartilha=true){
     let desligar=null,ativo=false,parado=false,epoca=0,geracao=0,erroTimer=null,atraso=1000,leitura=null,ultimoPedido=0,ultimoServidor=Date.now();
     function entregar(snapshot){
         if(parado)return;
         geracao++;
         if(!snapshot.metadata?.fromCache)ultimoServidor=Date.now();
         receber(snapshot);
-        if(snapshot.exists && !snapshot.metadata?.fromCache && !snapshot.metadata?.hasPendingWrites && typeof CMPartilhaResultados!=='undefined' && typeof firebase!=='undefined'){
+        if(sincronizarPartilha && snapshot.exists && !snapshot.metadata?.fromCache && !snapshot.metadata?.hasPendingWrites && typeof CMPartilhaResultados!=='undefined' && typeof firebase!=='undefined'){
             const estado=snapshot.data();if(Array.isArray(estado?.provas))CMPartilhaResultados.sincronizar(firebase.firestore(),estado);
         }
     }
@@ -1886,7 +1886,7 @@ const CMPartilhaResultados=(()=>{
  function projetar(prova){
   const alunos=prova.participantes || [],voluntarios=alunos.filter(a=>a.voluntario),porDorsal=new Map(alunos.map((a,i)=>[String(a.dorsal),{a,i}]));
   const out=campos(prova,['id','nome','nomeEscola','tituloDorsal','anoLetivo','dataProva']);
-  out.escaloesConfig=Object.fromEntries(Object.entries(prova.escaloesConfig || {}).map(([id,cfg])=>[id,campos(cfg,['nome','ativo','voltas','distanciaMetros','horaArranqueMs','horaFimMs','reinicioMs','anoMin','anoMax'])]));
+  out.escaloesConfig=Object.fromEntries(Object.entries(prova.escaloesConfig || {}).map(([id,cfg])=>[id,campos(cfg,['nome','ativo','voltas','distanciaMetros','horaArranqueMs','horaFimMs','reinicioMs','revisaoPista','anoMin','anoMax'])]));
   // Process numbers become local join keys. Unclassified pupils contribute only
   // category/count data; the public document contains no account or consent data.
   out.participantes=alunos.flatMap((a,i)=>a.voluntario?[]:[{...campos(a,['dorsal','ano','turma','escalaoId','escalaoCorridaId','genero','ativo','alf','nee','limitacoesFuncionais']),processo:'p'+i}]);
@@ -2317,6 +2317,7 @@ const CMPartilhaResultados=(()=>{
  /* Cartões dos escalões */
  body.cmp.visual-resultados .race-lane{background:var(--c-card)!important;border:1px solid var(--c-line)!important;border-top:6px solid var(--c-sky)!important;border-radius:18px!important;box-shadow:0 1px 3px #14231b12!important;color:var(--c-text)!important}
  body.cmp.visual-resultados .race-lane.lane-female{border-top-color:var(--c-rose)!important}
+ body.cmp.visual-resultados .race-lane.lane-adaptada{border-top-color:var(--c-violet)!important}
  body.cmp.visual-resultados .lane-heading{background:var(--c-card)!important;border:0!important;border-bottom:1px solid var(--c-line)!important}
  body.cmp.visual-resultados .lane-kicker,body.cmp.visual-resultados .lane-kicker>span:first-child{color:var(--c-muted)!important;font-weight:700!important;letter-spacing:.04em!important}
  body.cmp.visual-resultados .lane-heading h3,body.cmp.visual-resultados .alf-age-heading h3{font:800 26px/1.15 var(--f-body)!important;letter-spacing:-.02em;color:var(--c-ink)!important;text-transform:none!important}
@@ -2346,7 +2347,7 @@ const CMPartilhaResultados=(()=>{
  body.cmp.visual-resultados .table-athlete{color:var(--c-ink)!important;font-weight:700}
  body.cmp.visual-resultados .table-class{color:var(--c-muted)!important}
  body.cmp.visual-resultados :is(.lane-empty,.board-empty){color:var(--c-muted)!important;background:var(--c-card)!important;border:2px dashed var(--c-line-2)!important;border-radius:18px!important}
- body.cmp.visual-resultados .alf-group-header{background:var(--c-card)!important;border:1px solid var(--c-line)!important;border-top:6px solid var(--c-violet)!important;color:var(--c-ink)!important;border-radius:18px 18px 0 0!important}
+ body.cmp.visual-resultados .alf-results-group > .alf-group-header{background:var(--c-card)!important;border:1px solid var(--c-line)!important;border-top:6px solid var(--c-violet)!important;color:var(--c-ink)!important;border-radius:18px 18px 0 0!important}
  body.cmp.visual-resultados :is(.alf-group-caption,.alf-group-header span){color:var(--c-muted)!important}
  /* O seletor de prova não precisa de metade do cabeçalho: o nome da atividade fica com o espaço. */
  @media(min-width:900px){body.cmp.visual-resultados :is(.event-selector-box,#select-prova-quadro){width:clamp(220px,26vw,380px)!important;max-width:100%!important}body.cmp.visual-resultados .header-brand-group{flex:1 1 520px!important}}
@@ -2360,12 +2361,11 @@ const CMPartilhaResultados=(()=>{
  body.cmp.visual-resultados #lanes-track .lane-table thead{position:sticky;top:0;z-index:2}
  body.cmp.visual-resultados tr.cm-carrossel-sep td{padding:10px 8px!important;border:0!important;background:transparent!important;text-align:center}
  body.cmp.visual-resultados tr.cm-carrossel-sep span{display:inline-block;padding:3px 12px;border-radius:999px;background:var(--tone-wash);color:var(--tone-dk);font:800 11px/1.3 var(--f-body);letter-spacing:.06em;text-transform:uppercase}
- body.cmp.visual-resultados .config-group:has(#presets-pausa){display:none!important}
  body.cmp.visual-resultados .config-chip .chip-sub{color:var(--c-muted)!important}
  body.cmp.visual-resultados .config-chip.active .chip-sub,body.cmp.visual-resultados .config-chip[aria-pressed="true"] .chip-sub{color:#fff!important}
  @media(max-width:600px){body.cmp.visual-resultados .config-presets-grid{grid-template-columns:repeat(auto-fit,minmax(56px,1fr))!important}}
  /* O botão já tem ícone desenhado: a seta de texto ficava em duplicado. */
- body.cmp.visual-resultados #btn-toggle-table-scroll:has(svg.visual-icon) #scroll-status-icon,body.cmp.visual-resultados .btn-toggle-switch:has(svg.visual-icon) :is(#modal-rotate-switch-icon,#modal-scroll-switch-icon){display:none!important}
+ body.cmp.visual-resultados .btn-toggle-switch:has(svg.visual-icon) :is(#modal-rotate-switch-icon,#modal-scroll-switch-icon){display:none!important}
  @media(max-width:600px){body.cmp.visual-resultados .config-group-header{flex-direction:column!important;align-items:stretch!important;gap:10px!important}body.cmp.visual-resultados .config-group-header .btn-toggle-switch{align-self:flex-start!important}}
  /* Telemóvel: os três comandos numa só linha devolvem altura às faixas (a tabela de classificados deixava de caber). */
  @media(max-width:600px){body.cmp.visual-resultados #activity-name{font-size:20px!important;-webkit-line-clamp:3!important;line-clamp:3}body.cmp.visual-resultados .arrivals-label{font-size:11px!important}
@@ -2423,10 +2423,1101 @@ const CMPartilhaResultados=(()=>{
  html[data-tema="escuro"] body.cmp.visual-resultados .winner.pending{opacity:.75}
  /* Botão de tema */
  .cm-tema-ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
- @media(max-width:600px){body.cmp.visual-resultados .header-controls{grid-template-columns:repeat(3,minmax(0,1fr)) 44px!important}body.cmp.visual-resultados .cm-tema-btn{padding:0!important}body.cmp.visual-resultados .cm-tema-btn .cm-tema-rot{display:none}}
+ @media(max-width:600px){body.cmp.visual-resultados .header-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px!important}body.cmp.visual-resultados .cm-tema-btn{padding:0!important}body.cmp.visual-resultados .cm-tema-btn .cm-tema-rot{display:none}}
 }
 @media print{footer.credit-bar{display:none!important}}
-</style></head>
+</style><style>#modal-config-quadro #filtro-pista{width:100%;margin:.45em 0;padding:.5em .65em;min-height:40px;font:inherit;background:var(--c-card,#fff);color:var(--c-ink,#172638);border:1px solid var(--c-line-2,#aab5c2);border-radius:8px}</style>
+<style id="cm-quadros-podio-css">
+@media screen {
+  .podio-prova-nome{display:none}
+  body.cmp.visual-resultados.cm-modo-podio {
+    --tone: #986500;
+    --tone-dk: #684600;
+    --tone-wash: #fff4d5;
+    --podio-selecionado-fundo: #fff0bd;
+    --podio-selecionado-linha: #a56c00;
+    --podio-selecionado-texto: #442c00;
+  }
+
+  html[data-tema="escuro"] body.cmp.visual-resultados.cm-modo-podio {
+    --tone: #b07a16;
+    --tone-dk: #f4cb70;
+    --tone-wash: #302409;
+    --podio-selecionado-fundo: #422f10;
+    --podio-selecionado-linha: #ffc34e;
+    --podio-selecionado-texto: #ffe9a8;
+  }
+
+  body.cm-modo-podio :is(.results-shell, .arrivals-bar, .event-selector-box, #btn-config-quadro, .pulse-beacon) {
+    display: none !important;
+  }
+
+  body.cm-modo-podio :is(.podio-shell,.podio-toolbar > *)[hidden] {
+    display: none !important;
+  }
+
+  body.cm-modo-podio .podio-shell {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+    scrollbar-gutter: stable;
+  }
+
+  body.cm-modo-podio :is(.podio-toolbar, .podio-conteudo) {
+    width: 100%;
+    margin-inline: 0;
+    padding-inline: clamp(10px, .9vw, 22px);
+  }
+
+  body.cm-modo-podio .podio-toolbar {
+    display: flex;
+    flex: none;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    padding-block: clamp(10px, 1.1vw, 20px) clamp(8px, .8vw, 14px);
+  }
+
+  body.cm-modo-podio .podio-toolbar h2 {
+    margin: 0;
+    color: var(--c-ink);
+    font: 800 clamp(20px, 1.55vw, 32px)/1.12 var(--f-body);
+    letter-spacing: -.025em;
+  }
+
+  body.cm-modo-podio .podio-toolbar p {
+    margin: 5px 0 0;
+    color: var(--c-muted);
+    font-size: clamp(13px, 1.1vw, 16px);
+    line-height: 1.35;
+  }
+
+  body.cm-modo-podio .podio-toolbar label {
+    display: grid;
+    gap: 5px;
+    flex: 0 1 340px;
+    min-width: 0;
+    color: var(--c-text);
+    font-weight: 700;
+  }
+
+  body.cm-modo-podio .podio-toolbar select {
+    width: 100%;
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--c-line-2);
+    border-radius: 11px;
+    background: var(--c-card);
+    color: var(--c-ink);
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  body.cm-modo-podio .podio-toolbar button {
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 1px solid var(--c-line-2);
+    border-radius: 11px;
+    background: var(--c-card);
+    color: var(--c-ink);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  body.cm-modo-podio .podio-toolbar button:not(:disabled):hover {
+    border-color: var(--tone);
+    color: var(--tone-dk);
+  }
+
+  body.cm-modo-podio .podio-toolbar :is(button, select):disabled {
+    cursor: default;
+    opacity: .55;
+  }
+
+  body.cm-modo-podio .podio-conteudo {
+    min-width: 0;
+    padding-block-end: clamp(10px, 1vw, 20px);
+  }
+
+  body.cm-modo-podio .podio-vazio {
+    margin: 0;
+    padding: 22px;
+    border: 1px dashed var(--c-line-2);
+    border-radius: 14px;
+    background: var(--c-card);
+    color: var(--c-muted);
+    font-weight: 700;
+  }
+
+  body.cm-modo-podio .podio-grelha {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 266px), 1fr));
+    align-items: stretch;
+    gap: clamp(10px, 1.2vw, 18px);
+  }
+
+  body.cm-modo-podio .podio-escalao {
+    --podio-cor-escalao: var(--c-sky);
+    min-width: 0;
+    padding: clamp(11px, 1.2vw, 16px);
+    border: 1px solid var(--c-line);
+    border-top: 4px solid var(--podio-cor-escalao);
+    border-radius: 16px;
+    background: var(--c-card);
+    box-shadow: 0 1px 3px #0f1c2e10;
+  }
+
+  body.cm-modo-podio .podio-escalao[data-tipo="feminino"] { --podio-cor-escalao: var(--c-rose); }
+  body.cm-modo-podio .podio-escalao:is([data-tipo="adaptada"], [data-tipo="lf"]) { --podio-cor-escalao: var(--c-violet); }
+
+  body.cm-modo-podio .podio-escalao h3 {
+    margin: 0 0 10px;
+    color: var(--c-ink);
+    font: 800 clamp(16px, 1.5vw, 22px)/1.2 var(--f-body);
+    overflow-wrap: anywhere;
+  }
+
+  body.cm-modo-podio .podio-estado {
+    display: inline-block;
+    margin: 0 0 10px;
+    color: var(--tone-dk);
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 700;
+  }
+
+  body.cm-modo-podio .podio-lugares {
+    display: grid;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  body.cm-modo-podio .podio-lugares li { min-width: 0; }
+
+  body.cm-modo-podio .podio-atleta {
+    --podio-medalha: #89958d;
+    --podio-medalha-fundo: #eef2f0;
+    --podio-medalha-texto: #38483e;
+    display: grid;
+    grid-template-columns: minmax(2.2rem, max-content) minmax(0, 1fr);
+    align-items: center;
+    gap: 1px 10px;
+    width: 100%;
+    min-height: 45px;
+    min-width: 0;
+    padding: 6px 9px;
+    box-sizing: border-box;
+    border: 1px solid var(--c-line);
+    border-inline-start: 4px solid var(--podio-medalha);
+    border-radius: 9px;
+    background: var(--c-card-2);
+    color: var(--c-ink);
+    font: inherit;
+    text-align: left;
+  }
+
+  body.cm-modo-podio .podio-atleta[data-lugar="1"] {
+    --podio-medalha: #d4a017;
+    --podio-medalha-fundo: #fff1be;
+    --podio-medalha-texto: #644500;
+  }
+
+  body.cm-modo-podio .podio-atleta[data-lugar="3"] {
+    --podio-medalha: #b86b3c;
+    --podio-medalha-fundo: #fbe4d6;
+    --podio-medalha-texto: #713818;
+  }
+
+  body.cm-modo-podio .podio-lugar {
+    grid-row: span 2;
+    justify-self: start;
+    min-width: 2.1em;
+    padding: .25em .45em;
+    border-radius: 6px;
+    background: var(--podio-medalha-fundo);
+    color: var(--podio-medalha-texto);
+    font-size: .9em;
+    line-height: 1.2;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  body.cm-modo-podio .podio-nome {
+    color: var(--c-ink);
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  body.cm-modo-podio .podio-detalhe {
+    display: block;
+    grid-column: 2;
+    color: var(--c-muted);
+    font-size: .85em;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  body.cm-modo-podio .podio-sem-lugar {
+    color: var(--c-muted);
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  body.cm-modo-podio button.podio-atleta {
+    cursor: pointer;
+  }
+
+  body.cm-modo-podio button.podio-atleta:hover {
+    border-color: var(--podio-medalha);
+  }
+
+  body.cm-modo-podio button.podio-atleta[aria-pressed="true"] {
+    border-color: var(--podio-selecionado-linha);
+    background: var(--podio-selecionado-fundo);
+    box-shadow: 0 0 0 2px var(--podio-selecionado-linha);
+  }
+
+  body.cm-modo-podio button.podio-atleta[aria-pressed="true"] .podio-nome {
+    color: var(--podio-selecionado-texto);
+    text-decoration: underline;
+    text-decoration-thickness: .08em;
+    text-underline-offset: .14em;
+  }
+
+  @media (max-width: 600px) {
+    body.cmp.visual-resultados.cm-modo-podio .header-controls {
+      display: flex !important;
+      width: auto !important;
+      margin-inline-start: auto;
+    }
+
+    body.cm-modo-podio .podio-toolbar { align-items: flex-start; }
+    body.cm-modo-podio .podio-toolbar label { flex-basis: 100%; }
+  }
+}
+
+@media print {
+  @page cm-podios { size: A4 portrait; margin: 11mm; }
+
+  html:has(body.cm-modo-podio[data-quadro-podio="classificacao"]),
+  body.cm-modo-podio[data-quadro-podio="classificacao"] {
+    display: block !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #172638 !important;
+    color-scheme: light;
+    page: cm-podios;
+    font: 10pt/1.25 Arial, sans-serif;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] > :not(.podio-shell),
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-toolbar :is(button, label, select) {
+    display: none !important;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] :is(.podio-shell, .podio-toolbar, .podio-conteudo) {
+    display: block !important;
+    width: auto;
+    max-width: none;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-toolbar {
+    border-bottom: 1pt solid #a56c00;
+    margin: 0 0 4mm;
+    padding: 0 0 2mm;
+    break-after: avoid;
+  }
+
+  body.cm-modo-podio .podio-toolbar h2 { margin: 0; font-size: 17pt; }
+  body.cm-modo-podio .podio-toolbar p { margin: 1mm 0 0; color: #425068; font-size: 9pt; }
+  body.cm-modo-podio .podio-grelha {
+    display: block;
+    columns: 2;
+    column-gap: 4mm;
+  }
+
+  body.cm-modo-podio .podio-escalao {
+    margin: 0 0 3mm;
+    padding: 2mm 2.5mm;
+    border: .6pt solid #cbd5de;
+    border-top: 1.5pt solid #798b9e;
+    border-radius: 1.5mm;
+    break-inside: avoid;
+  }
+
+  body.cm-modo-podio .podio-escalao h3 { margin: 0 0 1.5mm; font-size: 10pt; overflow-wrap: anywhere; }
+  body.cm-modo-podio .podio-estado { margin: 0 0 1mm; color: #425068; font-size: 8pt; }
+  body.cm-modo-podio .podio-lugares { margin: 0; padding: 0; list-style: none; }
+  body.cm-modo-podio .podio-lugares li + li { border-top: .35pt solid #dce4ea; }
+
+  body.cm-modo-podio .podio-atleta {
+    display: grid;
+    grid-template-columns: minmax(8mm, max-content) minmax(0, 1fr);
+    align-items: start;
+    gap: .3mm 1.5mm;
+    padding: 1mm 0;
+    break-inside: avoid;
+  }
+
+  body.cm-modo-podio .podio-lugar { grid-row: span 2; font-weight: 700; }
+  body.cm-modo-podio .podio-nome { font-weight: 700; overflow-wrap: anywhere; }
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-detalhe,
+  body.cm-modo-podio .podio-grelha[data-podio-copia] { display: none !important; }
+  body.cm-modo-podio .podio-sem-lugar { color: #536070; }
+}
+</style>
+<style id="cm-podios-apresentacao">
+@media screen {
+  /* As duas vistas ocupam a janela inteira, como as chegadas ao vivo. */
+  body.cm-modo-podio .podio-conteudo {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.cm-modo-podio .podio-conteudo > .podio-grelha:not([data-podio-copia]) {
+    flex: 1 0 auto;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-shell {
+    overflow-x: hidden;
+    overflow-y: auto;
+    scroll-behavior: auto;
+    overflow-anchor: none;
+    overscroll-behavior-y: contain;
+    scrollbar-color: var(--c-muted) var(--c-bg);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-shell:focus-visible {
+    outline-offset: -3px;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--c-bg);
+  }
+
+  body.cm-modo-podio .podio-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  body.cm-modo-podio #podio-scroll-auto[hidden] {
+    display: none !important;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-conteudo {
+    --espaco-cartoes: clamp(10px, .9vw, 18px);
+  }
+
+  /* As colunas e o tamanho do texto são calculados para caber tudo na janela. */
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-grelha {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
+    grid-auto-rows: 1fr;
+    gap: var(--espaco-cartoes);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-conteudo[data-colunas] .podio-grelha {
+    grid-template-columns: repeat(var(--podio-colunas, 3), minmax(0, 1fr));
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-conteudo.podio-a-medir > .podio-grelha {
+    flex-grow: 0 !important;
+  }
+
+  /* Com deslocamento automático, cada linha fica só com a altura do seu conteúdo. */
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-conteudo[data-ajuste="scroll"]:not(.podio-a-medir) .podio-grelha {
+    grid-auto-rows: auto;
+  }
+
+  body.cm-modo-podio .podio-grelha[data-podio-copia] {
+    margin-block-start: var(--espaco-cartoes);
+  }
+
+  /* --podio-fonte é o maior tamanho de letra que deixa tudo caber na janela. */
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-escalao {
+    --f: var(--podio-fonte, 19px);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: max(10px, calc(var(--f) * .62));
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-escalao-cabecalho {
+    flex: none;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-escalao h3 {
+    margin-bottom: .42em;
+    font-size: calc(var(--f) * 1.12);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-estado {
+    font-size: max(12px, calc(var(--f) * .6));
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-lugares {
+    flex: 1 1 auto;
+    grid-auto-rows: 1fr;
+    gap: max(5px, calc(var(--f) * .34));
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-lugares li {
+    display: grid;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-atleta {
+    grid-template-columns: max-content minmax(0, 1fr);
+    min-height: 0;
+    column-gap: max(8px, calc(var(--f) * .55));
+    padding: max(5px, calc(var(--f) * .34)) max(8px, calc(var(--f) * .5));
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-lugar {
+    grid-row: auto;
+    font-size: max(12px, calc(var(--f) * .64));
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-nome {
+    display: block;
+    font-size: var(--f);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="classificacao"] .podio-detalhe {
+    margin-top: .15em;
+    font-size: max(12px, calc(var(--f) * .66));
+  }
+}
+
+@media screen {
+  /* ENTREGA DE CERTIFICADOS · palco a ocupar o ecrã */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-shell {
+    overflow-x: hidden;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-grelha {
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia {
+    --podio-transicao: 450ms cubic-bezier(.2, .7, .25, 1);
+    position: relative;
+    isolation: isolate;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #22365c;
+    border-top: 4px solid var(--podio-cor-escalao);
+    border-radius: 18px;
+    background: radial-gradient(130% 95% at 50% 0%, #22427a 0%, #11234a 46%, #081329 100%);
+    box-shadow: 0 18px 40px #050b1a38;
+    color: #f4f7ff;
+  }
+
+  /* Projetores de luz sobre os três lugares */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(ellipse 20% 90% at 50% -12%, #ffe3a04d, #0000 72%),
+      radial-gradient(ellipse 17% 80% at 18% -12%, #c9dcff30, #0000 72%),
+      radial-gradient(ellipse 17% 80% at 82% -12%, #ffcaa82b, #0000 72%),
+      radial-gradient(ellipse 70% 30% at 50% 104%, #6f9bff33, #0000 75%);
+    pointer-events: none;
+    transition: opacity var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-escalao-cabecalho {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 14px;
+    padding: clamp(12px, 2.4vh, 28px) clamp(14px, 3vw, 40px) 0;
+    text-align: center;
+    transition: opacity var(--podio-transicao), filter var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia h3 {
+    margin: 0;
+    color: #fff;
+    font: 900 clamp(22px, min(3.1vw, 5.2vh), 60px)/1.08 var(--f-body);
+    letter-spacing: -.02em;
+    text-shadow: 0 2px 18px #0009;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia h3::after {
+    content: "";
+    display: block;
+    width: 2.4em;
+    height: .11em;
+    margin: .3em auto 0;
+    border-radius: 99px;
+    background: var(--podio-cor-escalao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-estado {
+    margin: 0;
+    padding: .3em .85em;
+    border: 1px solid #ffcf5a8c;
+    border-radius: 99px;
+    background: #ffcf5a1f;
+    color: #ffe39a;
+    font-size: clamp(12px, 1.1vw, 17px);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-escalao-cabecalho .podio-sem-lugar {
+    flex-basis: 100%;
+    margin: 0;
+    color: #c4d0ea;
+    font-size: clamp(13px, 1.2vw, 18px);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cena {
+    position: relative;
+    flex: 1 1 0;
+    min-height: 290px;
+    container-type: size;
+  }
+
+  /* Chão do palco */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cena::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 9cqh;
+    border-top: 1px solid #b9ceff59;
+    background:
+      linear-gradient(90deg, #0000, #ffffff12 50%, #0000),
+      linear-gradient(180deg, #8fb2ff2e, #0000 90%);
+    pointer-events: none;
+    transition: filter var(--podio-transicao), opacity var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cena .podio-palco {
+    position: absolute;
+    inset: 0 0 9cqh;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.14fr) minmax(0, 1fr);
+    align-items: end;
+    gap: 0 1.4cqw;
+    width: auto;
+    margin: 0;
+    padding: 2cqh max(3cqw, 8px) 0;
+    transform-origin: 50% 75%;
+    transition: filter var(--podio-transicao), transform var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] :is(.podio-coluna, .podio-foco)[data-lugar="1"] {
+    --medalha-claro: #fff4c2;
+    --medalha: #f2c23a;
+    --medalha-escuro: #a8740a;
+    --bloco-topo: #fff0b8;
+    --bloco-a: #f9d76d;
+    --bloco-b: #e6ad25;
+    --bloco-c: #a8710b;
+    --bloco-tinta: #5a3900;
+    --luz: #ffdf8c5c;
+    --foco-luz: #ffd66e8c;
+    --foco-texto: #ffe08a;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] :is(.podio-coluna, .podio-foco)[data-lugar="2"] {
+    --medalha-claro: #ffffff;
+    --medalha: #c9d3df;
+    --medalha-escuro: #7d8ba0;
+    --bloco-topo: #f7f9fc;
+    --bloco-a: #e8edf4;
+    --bloco-b: #bcc7d5;
+    --bloco-c: #8494aa;
+    --bloco-tinta: #2b394c;
+    --luz: #d2e1ff3d;
+    --foco-luz: #dde8ff73;
+    --foco-texto: #e8eef8;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] :is(.podio-coluna, .podio-foco)[data-lugar="3"] {
+    --medalha-claro: #ffe1cc;
+    --medalha: #d48a5a;
+    --medalha-escuro: #8c4b26;
+    --bloco-topo: #f8d6c0;
+    --bloco-a: #eeb48f;
+    --bloco-b: #c87d4e;
+    --bloco-c: #8f4f2b;
+    --bloco-tinta: #4a2414;
+    --luz: #ffc6a238;
+    --foco-luz: #ffbe966e;
+    --foco-texto: #f6c7a6;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0;
+    height: 100%;
+    min-width: 0;
+    transition: transform var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna[data-lugar="1"] { order: 2; --bloco-altura: 36cqh; }
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna[data-lugar="2"] { order: 1; --bloco-altura: 26cqh; }
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna[data-lugar="3"] { order: 3; --bloco-altura: 18cqh; }
+
+  /* Feixe de luz sobre cada lugar */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna::before {
+    content: "";
+    position: absolute;
+    inset: -2cqh -12% 0;
+    z-index: -1;
+    background: linear-gradient(180deg, #0000, var(--luz) 22%, #0000 82%);
+    clip-path: polygon(40% 0, 60% 0, 100% 100%, 0 100%);
+    pointer-events: none;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna:has(button.podio-premiado) {
+    cursor: pointer;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna:has(button.podio-premiado):hover {
+    transform: translateY(-1cqh);
+  }
+
+  /* Medalha com fita na cor do escalão */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-medalha {
+    --m: clamp(28px, min(10.5cqh, 7.2cqw), 120px);
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: var(--m);
+    aspect-ratio: 1;
+    margin: calc(var(--m) * .72) 0 1.6cqh;
+    color: var(--bloco-tinta);
+    font-size: calc(var(--m) * .46);
+  }
+
+  /* Fita (atrás) e disco (à frente) */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-medalha::before {
+    content: "";
+    position: absolute;
+    bottom: 62%;
+    left: 50%;
+    z-index: 0;
+    width: 78%;
+    height: 112%;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, var(--podio-cor-escalao, #2b6fe0) 0 40%, #f4f7ff 40% 60%, var(--podio-cor-escalao, #2b6fe0) 60%);
+    clip-path: polygon(0 0, 40% 0, 50% 22%, 60% 0, 100% 0, 68% 100%, 32% 100%);
+    filter: brightness(.95);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-medalha::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 34% 28%, var(--medalha-claro) 0 12%, var(--medalha) 48%, var(--medalha-escuro) 100%);
+    box-shadow:
+      inset 0 0 0 calc(var(--m) * .06) #0000001f,
+      inset 0 0 0 calc(var(--m) * .1) #ffffff47,
+      0 calc(var(--m) * .08) calc(var(--m) * .25) #0008;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-medalha b {
+    position: relative;
+    z-index: 2;
+    font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 1px 0 #fff9;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-premiado {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    place-items: center;
+    width: 100%;
+    min-height: 0;
+    margin: 0 0 calc(2.6cqh + 1.4cqh);
+    padding: .6cqh .4cqw;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    box-shadow: none;
+    color: #fff;
+    font: inherit;
+    text-align: center;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia button.podio-premiado {
+    cursor: pointer;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia button.podio-premiado:focus-visible {
+    outline: 3px solid #ffd76a;
+    outline-offset: 4px;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-identidade {
+    display: grid;
+    gap: .6cqh;
+    width: 100%;
+    min-width: 0;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-nome {
+    color: #fff;
+    font-size: clamp(13px, min(5cqh, 2.6cqw), 56px);
+    font-weight: 850;
+    line-height: 1.1;
+    letter-spacing: -.01em;
+    text-decoration: none !important;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    text-shadow: 0 2px 12px #000a;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna[data-lugar="1"] .podio-nome {
+    font-size: clamp(14px, min(5.8cqh, 3cqw), 66px);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-detalhe {
+    grid-column: auto;
+    color: #c8d5ef;
+    font-size: clamp(12px, min(2.8cqh, 1.5cqw), 26px);
+    font-weight: 600;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna:not(:has(button.podio-premiado)) .podio-medalha {
+    opacity: .45;
+    filter: grayscale(.5);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-premiado.podio-sem-lugar {
+    color: #9fb0d0;
+    font-size: clamp(16px, min(4cqh, 2.4cqw), 44px);
+    font-weight: 700;
+  }
+
+  /* Blocos do pódio com topo, brilho e reflexo no chão */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-degrau {
+    position: relative;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 100%;
+    height: var(--bloco-altura);
+    min-width: 0;
+    border: 0;
+    border-radius: 5px 5px 0 0;
+    background: linear-gradient(180deg, var(--bloco-a) 0%, var(--bloco-b) 52%, var(--bloco-c) 100%);
+    box-shadow:
+      inset 0 1px 0 #fff9,
+      inset -1.1cqw 0 0 #0000001c,
+      inset 1.1cqw 0 0 #ffffff1a;
+    color: var(--bloco-tinta);
+    -webkit-box-reflect: below 0 linear-gradient(#0000 58%, #ffffff30);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-degrau::before {
+    content: "";
+    position: absolute;
+    inset: auto 0 100%;
+    height: 2.6cqh;
+    background: linear-gradient(180deg, var(--bloco-topo), var(--bloco-a));
+    clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
+    pointer-events: none;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-degrau::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(112deg, #fff0 30%, #ffffff40 41%, #fff0 52%);
+    pointer-events: none;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-degrau b {
+    position: relative;
+    z-index: 1;
+    font: 900 min(calc(var(--bloco-altura) * .5), 11cqw)/1 var(--f-body);
+    letter-spacing: -.04em;
+    text-shadow: 0 1px 0 #fff8, 0 -1px 0 #0003;
+  }
+
+  /* DESTAQUE · o pódio fica desfocado e o nome do atleta aparece em grande */
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque] .podio-palco {
+    filter: blur(clamp(6px, 1.6cqh, 18px)) brightness(.42) saturate(.7);
+    transform: scale(1.05);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque] .podio-cena::before {
+    filter: blur(8px);
+    opacity: .4;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque] .podio-escalao-cabecalho {
+    opacity: .55;
+    filter: blur(2px);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque]::before {
+    opacity: .5;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    isolation: isolate;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 1.6cqh;
+    padding: 3cqh 5cqw 9cqh;
+    overflow: hidden;
+    background: radial-gradient(60% 58% at 50% 45%, #0a142c00, #050a1873 100%);
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--podio-transicao), visibility 0s linear var(--podio-transicao);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque] .podio-foco {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity var(--podio-transicao), visibility 0s;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco:focus-visible {
+    outline: 2px solid #ffd76ab3;
+    outline-offset: -10px;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco-raios {
+    position: absolute;
+    top: 44%;
+    left: 50%;
+    z-index: -1;
+    width: 150cqmax;
+    aspect-ratio: 1;
+    translate: -50% -50%;
+    background: repeating-conic-gradient(from 0deg, var(--foco-luz) 0 5deg, #0000 5deg 15deg);
+    -webkit-mask: radial-gradient(circle, #000 0 6%, #0000 38%);
+    mask: radial-gradient(circle, #000 0 6%, #0000 38%);
+    opacity: .38;
+    animation: podio-rodar 70s linear infinite;
+    pointer-events: none;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco .podio-medalha {
+    --m: clamp(60px, min(19cqh, 13cqw), 230px);
+    margin: calc(var(--m) * .62) 0 .6cqh;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco-lugar {
+    color: var(--foco-texto);
+    font-size: clamp(14px, min(3.3cqh, 2.1cqw), 36px);
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco-nome {
+    display: block;
+    max-width: 92cqw;
+    color: #fff;
+    font: 900 clamp(26px, min(12cqh, 7.2cqw), 160px)/1.03 var(--f-body);
+    letter-spacing: -.02em;
+    text-wrap: balance;
+    overflow-wrap: anywhere;
+    text-shadow: 0 4px 30px #000c, 0 0 46px var(--foco-luz);
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco-detalhe {
+    color: #dbe5f7;
+    font-size: clamp(14px, min(3.6cqh, 2.3cqw), 40px);
+    font-weight: 700;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco-escalao {
+    padding: .35em 1em;
+    border: 1px solid #ffffff3d;
+    border-radius: 99px;
+    background: #ffffff12;
+    color: #e7eefb;
+    font-size: clamp(12px, min(2.5cqh, 1.6cqw), 26px);
+    font-weight: 700;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-foco-dica {
+    position: absolute;
+    inset: auto 0 2.6cqh;
+    color: #a9b8d6;
+    font-size: clamp(11px, min(2.1cqh, 1.2cqw), 18px);
+    font-weight: 600;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque]:not(.sem-entrada) .podio-foco .podio-medalha {
+    animation: podio-medalha-entra 750ms cubic-bezier(.2, .9, .3, 1.25) both;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque]:not(.sem-entrada) .podio-foco-lugar {
+    animation: podio-sobe 520ms 120ms cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque]:not(.sem-entrada) .podio-foco-nome {
+    animation: podio-nome-entra 700ms 170ms cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque]:not(.sem-entrada) :is(.podio-foco-detalhe, .podio-foco-escalao, .podio-foco-dica) {
+    animation: podio-sobe 520ms 330ms cubic-bezier(.2, .8, .2, 1) both;
+  }
+
+  @keyframes podio-medalha-entra {
+    from { opacity: 0; transform: translateY(-35%) scale(.55) rotate(-16deg); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes podio-nome-entra {
+    from { opacity: 0; transform: scale(.84); filter: blur(10px); }
+    to { opacity: 1; transform: none; filter: none; }
+  }
+
+  @keyframes podio-sobe {
+    from { opacity: 0; transform: translateY(1em); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes podio-rodar {
+    to { rotate: 360deg; }
+  }
+
+  @media (max-width: 540px) {
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia {
+      border-radius: 14px;
+    }
+
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cena .podio-palco {
+      gap: 0 1cqw;
+      padding-inline: 6px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia :is(.podio-coluna, .podio-palco, .podio-foco, .podio-escalao-cabecalho) {
+      transition: none !important;
+    }
+
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia .podio-coluna:hover,
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia[data-destaque] .podio-palco {
+      transform: none !important;
+    }
+
+    body.cm-modo-podio[data-quadro-podio="entrega"] .podio-cerimonia :is(.podio-foco *, .podio-foco-raios) {
+      animation: none !important;
+    }
+  }
+}
+</style>
+<style id="cm-seletor-vista-quadro">
+@media screen {
+  .quadro-vistas[hidden], .event-selector-box[hidden] {
+    display: none !important;
+  }
+
+  body.cmp.visual-resultados.cm-modo-podio {
+    height: 100dvh;
+  }
+
+  body.cmp.visual-resultados .quadro-vistas {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    color: #eef3fc;
+    font: 700 13px/1.25 var(--f-body);
+  }
+
+  body.cmp.visual-resultados #select-vista-quadro {
+    width: clamp(183px, 16vw, 200px);
+    max-width: 100%;
+    min-height: 42px;
+    padding: 6px 8px;
+    border: 1px solid #637489 !important;
+    border-radius: 10px;
+    background: #1b293c !important;
+    color: #f1f5fb !important;
+    color-scheme: dark;
+    font: inherit;
+  }
+
+  body.cmp.visual-resultados:has(.quadro-vistas:not([hidden])) .header-controls {
+    flex-wrap: wrap;
+  }
+
+  @media (min-width: 901px) {
+    body.cmp.visual-resultados:has(.quadro-vistas:not([hidden])) .header-brand-group {
+      flex: 1 1 275px !important;
+    }
+  }
+
+  @media (max-width: 700px) {
+    body.cmp.visual-resultados:has(.quadro-vistas:not([hidden])) .header-controls {
+      display: flex !important;
+      width: 100% !important;
+      justify-content: flex-end;
+    }
+
+    body.cmp.visual-resultados .quadro-vistas {
+      flex: 1 0 214px;
+      margin-inline-end: auto;
+    }
+
+    body.cmp.visual-resultados #select-vista-quadro {
+      font-size: 12px !important;
+    }
+  }
+}
+</style>
+</head>
 
 <body class="cm-visual visual-v2 visual-resultados cmp">
     <!-- AMBIENTE DE ESTÁDIO & ILUMINAÇÃO DINÂMICA -->
@@ -2459,42 +3550,68 @@ const CMPartilhaResultados=(()=>{
         </div>
 
         <div class="header-controls">
+            <label class="quadro-vistas" id="quadro-vistas" for="select-vista-quadro" hidden>
+                <span>Vista</span>
+                <select id="select-vista-quadro">
+                    <option value="">Chegadas ao vivo</option>
+                    <option value="entrega">Entrega de certificados</option>
+                    <option value="classificacao">Classificação por escalão</option>
+                </select>
+            </label>
             <div class="clock-display" id="clock-display">00:00:00</div>
-            <button class="btn-ctrl" id="btn-rotate" onclick="toggleAutoRotate()" title="Alternar categorias automaticamente">
-                <span>🔄</span> <span id="rotate-label">Horizontal: OFF</span>
-            </button>
-            <button class="btn-ctrl" id="btn-config-quadro" onclick="abrirModalConfigQuadro()" title="Ajustar velocidade de scroll e duração do roll">
-                <span>⚙️</span> <span>Velocidade</span>
+            <button type="button" class="btn-ctrl" id="btn-config-quadro" onclick="abrirModalConfigQuadro()" aria-haspopup="dialog" aria-controls="modal-config-quadro" aria-expanded="false">
+                <span aria-hidden="true">⚙</span> <span>Configurações</span>
             </button>
             <button type="button" class="btn-ctrl" id="btn-fullscreen" onclick="toggleFullscreen()" title="Modo Ecrã Inteiro para Projetor/TV" aria-label="Entrar em ecrã inteiro" aria-pressed="false"><span class="fullscreen-enter-icon" aria-hidden="true">⛶</span><span class="fullscreen-exit-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h5V3m13 5h-5V3M3 16h5v5m13-5h-5v5"/></svg></span><span class="fullscreen-label">Ecrã Inteiro</span></button>
         </div>
     </header>
 
-    <main class="results-shell"><div class="results-toolbar"><div><h2>Classificações por escalão</h2><p id="board-summary">Resultados em tempo real</p></div><div class="toolbar-right"><span id="board-update-time"></span><button type="button" class="btn-ctrl" id="btn-toggle-table-scroll" onclick="toggleAutoScrollTabela()"><span id="scroll-status-icon">↕</span> <span id="scroll-status-text">Vertical: ON</span></button></div></div><div class="lanes-viewport" id="lanes-viewport" tabindex="0" aria-label="Escalões · deslocar horizontalmente"><div class="lanes-track" id="lanes-track"></div></div></main><aside class="arrivals-bar" aria-label="Últimas chegadas"><div class="arrivals-label"><span class="arrival-dot"></span> Últimas chegadas</div><div class="arrivals-viewport"><div class="arrivals-track" id="arrivals-track"><span class="arrivals-empty">A aguardar as primeiras chegadas à meta.</span></div></div></aside>
+    <main class="results-shell" id="visual-conteudo" tabindex="-1"><div class="results-toolbar"><div><h2>Classificações por escalão</h2><p id="board-summary">Resultados em tempo real</p></div><div class="toolbar-right"><span id="board-update-time"></span></div></div><div class="lanes-viewport" id="lanes-viewport" tabindex="0" aria-label="Escalões · deslocar horizontalmente"><div class="lanes-track" id="lanes-track"></div></div></main><aside class="arrivals-bar" aria-label="Últimas chegadas"><div class="arrivals-label"><span class="arrival-dot"></span> Últimas chegadas</div><div class="arrivals-viewport"><div class="arrivals-track" id="arrivals-track"><span class="arrivals-empty">A aguardar as primeiras chegadas à meta.</span></div></div></aside>
+    <main class="podio-shell" id="quadro-podio" aria-labelledby="podio-titulo" hidden>
+        <header class="podio-toolbar">
+            <div>
+                <h2 id="podio-titulo"></h2>
+                <p class="podio-prova" id="podio-prova"></p>
+            </div>
+            <label id="podio-filtro" class="podio-controlo" hidden>
+                <span>Escalão</span>
+                <select id="podio-seletor"></select>
+            </label>
+            <div class="podio-acoes" id="podio-acoes" hidden>
+                <button class="btn-ctrl" id="podio-scroll-auto" type="button" aria-controls="quadro-podio" hidden>Pausar scroll</button>
+                <button class="btn-ctrl podio-imprimir" id="podio-imprimir" type="button">Imprimir / guardar PDF</button>
+            </div>
+        </header>
+        <div class="podio-conteudo" id="podio-conteudo"></div>
+    </main>
+
     <!-- MODAL DE CONFIGURAÇÕES DE VELOCIDADE & ROLL -->
-    <div class="modal-overlay" id="modal-config-quadro" style="display: none;" onclick="fecharModalConfigQuadroSeClicouFora(event)">
+    <div class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="titulo-config-quadro" id="modal-config-quadro" style="display: none;" onclick="fecharModalConfigQuadroSeClicouFora(event)">
         <div class="modal-card">
             <div class="modal-card-header">
                 <div class="modal-title-wrap">
                     <span class="modal-icon">⚙️</span>
                     <div>
-                        <h3 class="modal-title">Velocidade dos escalões e das tabelas</h3>
-                        <div class="modal-subtitle">Personalize a exibição do quadro eletrónico para projetores e ecrãs</div>
+                        <h3 class="modal-title" id="titulo-config-quadro">Configurações do quadro</h3>
                     </div>
                 </div>
-                <button type="button" class="modal-btn-close" onclick="fecharModalConfigQuadro()" title="Fechar">✕</button>
+                <button type="button" class="modal-btn-close" onclick="fecharModalConfigQuadro()" aria-label="Fechar configurações" title="Fechar">✕</button>
             </div>
 
             <div class="modal-card-body">
-                <!-- BLOCO 1: DURAÇÃO DO ROLL (ROTAÇÃO ENTRE ESCALÕES) -->
+                <div class="config-group"><label class="config-label" for="filtro-pista">Provas a apresentar</label>
+                <select id="filtro-pista" onchange="quadroConfig.provasVisiveis=this.value;guardarConfiguracoesQuadro();atualizarQuadroCompleto()">
+                 <option value="todas">Todas as provas</option><option value="ativas">Só provas em pista</option>
+                 <option value="automatico">Em pista e, no fim, todas</option></select>
+                <div class="config-desc">A classificação geral está sempre visível.</div></div>
                 <div class="config-group">
                     <div class="config-group-header">
                         <div>
-                            <div class="config-label">🔄 Scroll horizontal dos escalões</div>
-                            <div class="config-desc">Tempo para deslocar cada bloco no percurso horizontal contínuo</div>
+                            <div class="config-label">Deslocamento horizontal dos escalões</div>
+                            <div class="config-desc">Tempo de deslocamento entre colunas.</div>
                         </div>
-                        <button type="button" class="btn-toggle-switch" id="modal-btn-toggle-rotate" onclick="toggleAutoRotateFromModal()" title="Ligar ou desligar scroll horizontal">
-                            <span id="modal-rotate-switch-icon">🔄</span> <span id="modal-rotate-switch-text">Horizontal: ON</span>
+                        <button type="button" class="btn-toggle-switch" id="modal-btn-toggle-rotate" onclick="toggleAutoRotate()" aria-label="Deslocamento horizontal automático" aria-pressed="true">
+                            <span id="modal-rotate-switch-icon">🔄</span> <span id="modal-rotate-switch-text">Ligado</span>
                         </button>
                     </div>
 
@@ -2522,11 +3639,11 @@ const CMPartilhaResultados=(()=>{
                 <div class="config-group">
                     <div class="config-group-header">
                         <div>
-                            <div class="config-label">📜 Velocidade do Scroll Vertical (Tabela)</div>
-                            <div class="config-desc">Ritmo de deslocamento contínuo da tabela de atletas</div>
+                            <div class="config-label">Deslocamento vertical dos classificados</div>
+                            <div class="config-desc">Velocidade da lista de restantes classificados em cada escalão.</div>
                         </div>
-                        <button type="button" class="btn-toggle-switch" id="modal-btn-toggle-scroll" onclick="toggleAutoScrollFromModal()" title="Ligar ou desligar scroll da tabela">
-                            <span id="modal-scroll-switch-icon">⚡</span> <span id="modal-scroll-switch-text">Scroll: ON</span>
+                        <button type="button" class="btn-toggle-switch" id="modal-btn-toggle-scroll" onclick="toggleAutoScrollTabela()" aria-label="Deslocamento vertical automático" aria-pressed="true">
+                            <span id="modal-scroll-switch-icon">⚡</span> <span id="modal-scroll-switch-text">Ligado</span>
                         </button>
                     </div>
 
@@ -2550,27 +3667,11 @@ const CMPartilhaResultados=(()=>{
                         <button type="button" class="stepper-btn" onclick="alterarVelocidadeScrollPorDelta(20)" title="Aumentar velocidade">➕ Mais Rápido</button>
                     </div>
                 </div>
-
-                <!-- BLOCO 3: PAUSA NAS EXTREMIDADES -->
-                <div class="config-group" style="margin-bottom: 0;">
-                    <div class="config-group-header">
-                        <div>
-                            <div class="config-label">⏸️ Pausa no Topo e no Fundo</div>
-                            <div class="config-desc">Tempo de paragem antes de descer ou regressar ao topo</div>
-                        </div>
-                    </div>
-
-                    <div class="config-presets-grid" id="presets-pausa" style="grid-template-columns: repeat(3, 1fr);">
-                        <button type="button" class="config-chip" data-p="curta" onclick="definirPausaExtremidades(0.8, 1.0, 'curta')">Curta <span class="chip-sub">0.8s / 1.0s</span></button>
-                        <button type="button" class="config-chip active" data-p="normal" onclick="definirPausaExtremidades(1.2, 1.5, 'normal')">Equilibrada <span class="chip-sub">1.2s / 1.5s</span></button>
-                        <button type="button" class="config-chip" data-p="longa" onclick="definirPausaExtremidades(2.0, 2.5, 'longa')">Longa <span class="chip-sub">2.0s / 2.5s</span></button>
-                    </div>
-                </div>
             </div>
 
             <div class="modal-card-footer">
-                <button type="button" class="btn-modal-reset" onclick="reporPredefinicoesQuadro()" title="Restaurar valores de fábrica">
-                    ↺ Repor Padrões
+                <button type="button" class="btn-modal-reset" onclick="reporPredefinicoesQuadro()" title="Repor as configurações predefinidas">
+                    ↺ Repor predefinições
                 </button>
                 <div class="footer-actions-right">
                     <button type="button" class="btn-modal-confirm" onclick="fecharModalConfigQuadro()">
@@ -2607,18 +3708,23 @@ function distanciaEscalao(k,config) {
 
         const contextoQuadro = new URLSearchParams(window.location.search);
         const quadroPartilhado=contextoQuadro.has('partilha');
+        const modoPedidoQuadro=contextoQuadro.get('quadro');
+        const tipoQuadroPodio=!quadroPartilhado&&['entrega','classificacao'].includes(modoPedidoQuadro)?modoPedidoQuadro:'';
+        const provaFixaQuadro=tipoQuadroPodio ? (contextoQuadro.get('prova') || '') : '';
+        let vistaAtualQuadro=tipoQuadroPodio;
         let provaPartilhadaAutorizadaQuadro='';
         const quadroAbertoPelaGestao = !quadroPartilhado && contextoQuadro.get('origem') === 'gestao';
         const criadorFiltroQuadro = quadroAbertoPelaGestao ? (contextoQuadro.get('utilizador') || '') : null;
-        const sessaoGestaoQuadro = (()=>{
+        function lerSessaoGestaoQuadro(){
             if(!quadroAbertoPelaGestao)return null;
             try {
-                const sessao=JSON.parse(localStorage.getItem('cortaMatoAcessoQuadroGestao')||'null');
-                if(sessao && contextoQuadro.get('sessao') && sessao.token===contextoQuadro.get('sessao') && sessao.user===criadorFiltroQuadro && sessao.expires>Date.now())return sessao;
+                const sessao=JSON.parse(localStorage.getItem('cortaMatoQuadroGestao:'+criadorFiltroQuadro)||localStorage.getItem('cortaMatoAcessoQuadroGestao')||'null');
+                if(sessao && contextoQuadro.get('sessao') && sessao.token===contextoQuadro.get('sessao') && sessao.user===criadorFiltroQuadro && (!sessao.expires||sessao.expires>Date.now()))return sessao;
             }catch(e){}
             return null;
-        })();
+        }
         function contaGestaoValidaQuadro() {
+            const sessaoGestaoQuadro=lerSessaoGestaoQuadro();
             if(!quadroAbertoPelaGestao || !sessaoGestaoQuadro)return null;
             const conta=(appState.utilizadores||[]).find(c=>c.user===sessaoGestaoQuadro.user);
             return conta && Number(conta.authVersion||1)===sessaoGestaoQuadro.authVersion ? conta : null;
@@ -2633,6 +3739,53 @@ function distanciaEscalao(k,config) {
         }
         let appState = { provas: [], currentProvaId: null };
         let currentProva = null;
+// O acesso pertence ao separador e à prova. A credencial persiste durante recargas e suspensão.
+function sessaoDaProva(servico){
+ const chave='cm.sessao.'+servico;
+ let geracao=0,emCurso=false;
+ const administrador=c=>c&&(c.tipo==='administrador'||c.user==='admin'&&!c.tipo);
+ function credencial(data,p,conta){
+  const dono=(data.utilizadores||[]).find(c=>c.user===(p?.criador||'admin'));
+  if(!p||p.deleted||!dono?.pass||!conta?.pass||conta.user!==dono.user&&!administrador(conta))return null;
+  return {id:p.id,provaId:p.id,user:dono.user,pass:dono.pass,authVersion:Number(dono.authVersion||1),
+   operador:conta.user,segredo:conta.pass,versao:Number(conta.authVersion||1)};
+ }
+ function valida(data,p,a){
+  const atual=a&&credencial(data,p,(data.utilizadores||[]).find(c=>c.user===a.operador));
+  return !!atual&&Object.keys(atual).every(k=>atual[k]===a[k]);
+ }
+ async function assinatura(a,sal){
+  const bytes=new TextEncoder().encode(JSON.stringify([chave,sal,a.id,a.user,a.authVersion,a.pass,a.operador,a.versao,a.segredo]));
+  const hash=await crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(hash),v=>v.toString(16).padStart(2,'0')).join('');
+ }
+ function sair(){geracao++;try{sessionStorage.removeItem(chave);}catch{}}
+ function iniciar(data,p,password){
+  const contas=data.utilizadores||[],dono=contas.find(c=>c.user===(p.criador||'admin'));
+  const a=credencial(data,p,dono?.pass===password?dono:contas.find(c=>administrador(c)&&c.pass===password));
+  if(!a)return null;
+  sair();const versao=geracao;
+  if(globalThis.crypto?.subtle){const sal=Array.from(crypto.getRandomValues(new Uint32Array(4))).join('-');
+   assinatura(a,sal).then(hash=>{if(geracao===versao)sessionStorage.setItem(chave,JSON.stringify({id:p.id,operador:a.operador,sal,hash}));}).catch(()=>{});}
+  return a;
+ }
+ async function retomar(estado,aceitar){
+  if(emCurso)return;
+  try{
+   const guardado=JSON.parse(sessionStorage.getItem(chave)||'null');if(!guardado)return;
+   const data=estado(),p=data.provas?.find(p=>p.id===guardado.id);
+   if(!p||!data.utilizadores?.length)return;
+   const a=credencial(data,p,data.utilizadores.find(c=>c.user===guardado.operador)),versao=geracao;
+   emCurso=true;const hash=a&&await assinatura(a,guardado.sal);
+   if(geracao!==versao)return;
+   if(!a||guardado.hash!==hash){sair();return;}
+   const ultimo=estado();if(valida(ultimo,ultimo.provas?.find(p=>p.id===a.id),a))aceitar(a);
+  }catch{}finally{emCurso=false;}
+ }
+ return {iniciar,valida,retomar,sair};
+}
+const sessaoQuadro=sessaoDaProva('resultados');
+        const chaveEscolhaQuadro='cm.quadro.escolha.'+String(contextoQuadro.get('sessao')||'');
         let acessoProvaQuadro = null;
         let provaPendenteQuadro = '';
         function contaDaProvaQuadro(prova) {
@@ -2641,10 +3794,43 @@ function distanciaEscalao(k,config) {
         function acessoValidoQuadro(prova) {
             if(quadroPartilhado)return !!prova && !prova.deleted && String(prova.id)===provaPartilhadaAutorizadaQuadro;
             if(quadroAbertoPelaGestao)return acessoGestaoValidoQuadro(prova);
-            const conta=contaDaProvaQuadro(prova),acesso=acessoProvaQuadro;
-            return !!(prova && conta && acesso && acesso.id===prova.id && acesso.user===conta.user && acesso.pass===conta.pass && acesso.authVersion===Number(conta.authVersion||1));
+            return sessaoQuadro.valida(appState,prova,acessoProvaQuadro);
         }
+        function atualizarVistaQuadro() {
+            const seletor = document.getElementById('select-vista-quadro');
+            const permitido = !quadroPartilhado && acessoValidoQuadro(currentProva);
+            seletor.value = vistaAtualQuadro;
+            for (const opcao of seletor.options) {
+                opcao.disabled = opcao.value !== '' && opcao.value !== vistaAtualQuadro && !permitido;
+            }
+            const emPodio = Boolean(vistaAtualQuadro);
+            const podio = document.getElementById('quadro-podio');
+            podio.hidden = !emPodio;
+            podio.tabIndex = vistaAtualQuadro === 'classificacao' ? 0 : -1;
+            document.body.classList.toggle('cm-modo-podio', emPodio);
+            if (emPodio) document.body.dataset.quadroPodio = vistaAtualQuadro;
+            else delete document.body.dataset.quadroPodio;
+            const subtitulo = document.querySelector('.brand-sub');
+            const rotulo = emPodio ? 'Corta-Mato Escolar' : 'Corta-Mato · Classificações ao vivo';
+            if (subtitulo.textContent !== rotulo) subtitulo.textContent = rotulo;
+            document.querySelector('.visual-skip')?.setAttribute('href', emPodio ? '#quadro-podio' : '#visual-conteudo');
+        }
+
+        function mudarVistaQuadro(evento) {
+            const seletor = evento.currentTarget;
+            const novaVista = seletor.value;
+            if (quadroPartilhado || (novaVista && !acessoValidoQuadro(currentProva))) {
+                seletor.value = vistaAtualQuadro;
+                return;
+            }
+            if (novaVista === vistaAtualQuadro || !['', 'entrega', 'classificacao'].includes(novaVista)) return;
+            vistaAtualQuadro = novaVista;
+            CMQuadroPodio.repor();
+            atualizarQuadroCompleto();
+        }
+
         function cancelarPasswordQuadro() {
+            if(!quadroAbertoPelaGestao&&!quadroPartilhado)sessaoQuadro.sair();
             provaPendenteQuadro='';acessoProvaQuadro=null;currentProva=null;
             document.getElementById('password-prova-modal').hidden=true;
             document.getElementById('password-prova-input').value='';
@@ -2657,7 +3843,7 @@ function distanciaEscalao(k,config) {
             const input=document.getElementById('password-prova-input'),erro=document.getElementById('password-prova-erro');
             if(!prova || !conta || typeof conta.pass!=='string' || !conta.pass){erro.textContent='A conta responsável por esta prova não está disponível. Verifique a gestão de contas.';return;}
             if(input.value!==conta.pass&&!cmAdminComPassword(appState,input.value)){erro.textContent='Password incorreta. Tente novamente.';input.value='';input.focus();return;}
-            acessoProvaQuadro={id:prova.id,user:conta.user,pass:conta.pass,authVersion:Number(conta.authVersion||1)};
+            acessoProvaQuadro=sessaoQuadro.iniciar(appState,prova,input.value);
             currentProva=prova;provaPendenteQuadro='';input.value='';
             document.getElementById('password-prova-modal').hidden=true;
             categoriaAtiva='todas';atualizarQuadroCompleto();
@@ -2692,10 +3878,25 @@ function distanciaEscalao(k,config) {
         // =========================================================
         function ligarSincronizacao(){
    if(quadroPartilhado){ligarPartilhaQuadro();return;}
+   if(tipoQuadroPodio&&!lerSessaoGestaoQuadro()){atualizarQuadroCompleto();return;}
    if(!window.quadroSyncLocalCM){
     window.quadroSyncLocalCM=true;
-    try{const saved=localStorage.getItem('cortaMatoApp');if(saved)processarDadosAtualizados(JSON.parse(saved));}catch(error){}
-    window.addEventListener('storage',event=>{if(event.key==='cortaMatoApp'&&event.newValue)try{processarDadosAtualizados(JSON.parse(event.newValue));}catch(error){}});
+    let ultimaCache;
+    function aplicarCache(saved){
+     if(!saved||(tipoQuadroPodio&&saved===ultimaCache))return;
+     try{processarDadosAtualizados(JSON.parse(saved));ultimaCache=saved;}catch(error){}
+    }
+    try{aplicarCache(localStorage.getItem('cortaMatoApp'));}catch(error){}
+    window.addEventListener('storage',event=>{if(event.key==='cortaMatoApp')aplicarCache(event.newValue);});
+    // Alguns navegadores partilham o armazenamento dos HTML locais sem enviar o evento storage.
+    if(tipoQuadroPodio&&location.protocol==='file:'){
+     let comSessao=true;
+     setInterval(()=>{
+      const valida=Boolean(lerSessaoGestaoQuadro());
+      if(valida!==comSessao){comSessao=valida;processarDadosAtualizados(appState);}
+      if(valida)try{aplicarCache(localStorage.getItem('cortaMatoApp'));}catch(error){}
+     },2000);
+    }
    }
    if(observadorQuadroCM)return;
    const db=conectarFirebase();
@@ -2703,7 +3904,7 @@ function distanciaEscalao(k,config) {
    let assinatura='';
    observadorQuadroCM=escutarDadosAutomaticosCM(db.collection('cortaMatoApp').doc('estadoGlobal'),doc=>{
     if(doc.exists){const next=doc.data(),texto=JSON.stringify(next);if(texto!==assinatura){assinatura=texto;processarDadosAtualizados(next);}}
-   },error=>console.warn('Ligação do quadro a recuperar:',error.code));
+   },error=>console.warn('Ligação do quadro a recuperar:',error.code),!tipoQuadroPodio);
   }
 
 function provasDisponiveisNoQuadro() {
@@ -2728,6 +3929,13 @@ function preservarReiniciosNoQuadro(next) {
                 updated.resultados = updated.resultados.filter(r=>r.escalaoId!==key).concat((anterior.resultados||[]).filter(r=>r.escalaoId===key));
                 updated.participantes.forEach(p=>{if(p.escalaoId===key){const old=(anterior.participantes||[]).find(a=>String(a.dorsal)===String(p.dorsal));p.scans=old?.scans||[];}});
             } else if (incoming > known) reiniciosQuadro.set(id,incoming);
+            else {
+                const antes=anterior?.escaloesConfig?.[key];
+                if(antes&&Number(antes.reinicioMs||0)===incoming&&Number(antes.revisaoPista||0)>Number(cfg.revisaoPista||0)){
+                    if(updated===prova)updated={...prova,escaloesConfig:{...prova.escaloesConfig},participantes:(prova.participantes||[]).map(p=>({...p})),resultados:(prova.resultados||[]).slice()};
+                    updated.escaloesConfig[key]={...cfg,horaArranqueMs:antes.horaArranqueMs,horaFimMs:antes.horaFimMs,revisaoPista:antes.revisaoPista};
+                }
+            }
         });
         return updated;
     });
@@ -2747,19 +3955,31 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             if(quadroPartilhado){if(!origemPartilha)return;const prova=novoState?.provas?.find(p=>String(p.id)===provaPartilhadaAutorizadaQuadro);novoState={provas:prova?[prova]:[]};}
             if (!novoState || !Array.isArray(novoState.provas)) return;
             appState = normalizarNomesProvasAdaptadas(preservarReiniciosNoQuadro(novoState));
+            if(tipoQuadroPodio){
+                currentProva=appState.provas.find(p=>provaFixaQuadro&&String(p?.id)===provaFixaQuadro&&acessoGestaoValidoQuadro(p))||null;
+                atualizarQuadroCompleto();
+                return;
+            }
             renderDropdownProvas();
             const lista=provasDisponiveisNoQuadro(),id=document.getElementById('select-prova-quadro').value;
             const prova=lista.find(p=>p.id===id)||null;
             currentProva=acessoValidoQuadro(prova)?prova:null;
             if(!currentProva && (acessoProvaQuadro || (quadroAbertoPelaGestao && prova))){acessoProvaQuadro=null;document.getElementById('select-prova-quadro').value='';}
+            if(!quadroPartilhado&&!quadroAbertoPelaGestao&&!currentProva&&!provaPendenteQuadro)sessaoQuadro.retomar(()=>appState,a=>{
+                if(currentProva||provaPendenteQuadro)return;acessoProvaQuadro=a;currentProva=provasDisponiveisNoQuadro().find(p=>p.id===a.id);
+                document.getElementById('select-prova-quadro').value=a.id;atualizarQuadroCompleto();
+            });
             if(provaPendenteQuadro && !lista.some(p=>p.id===provaPendenteQuadro))cancelarPasswordQuadro();
             atualizarQuadroCompleto();
         }
+        window.addEventListener('storage',e=>{if(quadroAbertoPelaGestao&&(e.key===null||e.key==='cortaMatoQuadroGestao:'+criadorFiltroQuadro||e.key==='cortaMatoAcessoQuadroGestao'))processarDadosAtualizados(appState);});
         function renderDropdownProvas() {
             const sel=document.getElementById('select-prova-quadro');if(!sel)return;
             if(quadroPartilhado){const p=provasDisponiveisNoQuadro()[0];sel.replaceChildren();if(p)sel.add(new Option(p.nome || 'Resultados',p.id));sel.value=p?.id || '';sel.disabled=true;sel.hidden=true;return;}
             const lista=provasDisponiveisNoQuadro(),prev=sel.value;
-            const selected=lista.some(p=>p.id===prev)?prev:'';
+            let escolha=prev;
+            if(!escolha&&quadroAbertoPelaGestao){try{escolha=sessionStorage.getItem(chaveEscolhaQuadro)||'';}catch{}}
+            const selected=lista.some(p=>p.id===escolha)?escolha:'';
             sel.innerHTML=lista.length?'<option value="">Selecione uma prova</option>'+lista.map(p=>{
                 const count=(p.participantes||[]).filter(a=>a.ativo!==false&&!a.voluntario).length;
                 return '<option value="'+safeText(p.id)+'" '+(p.id===selected?'selected':'')+'>🏆 '+safeText(p.nome)+(count?' ('+count+' alunos)':'')+'</option>';
@@ -2767,7 +3987,7 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             sel.value=selected;sel.disabled=!lista.length;
         }
         function atualizarProvasDoServidor() {
-            if(quadroPartilhado)return;
+            if(quadroPartilhado||(tipoQuadroPodio&&!lerSessaoGestaoQuadro()))return;
             const db=conectarFirebase();if(!db)return;
             db.collection('cortaMatoApp').doc('estadoGlobal').get({source:'server'}).then(doc=>{if(doc.exists)processarDadosAtualizados(doc.data());}).catch(err=>console.warn('A aguardar ligação para atualizar as provas.',err));
         }
@@ -2779,6 +3999,7 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             let sel = document.getElementById('select-prova-quadro');
             if (!sel) return;
             let id = sel.value;
+            if(quadroAbertoPelaGestao){try{sessionStorage.setItem(chaveEscolhaQuadro,id);}catch{}}else sessaoQuadro.sair();
             acessoProvaQuadro=null;currentProva=null;categoriaAtiva='todas';
             atualizarQuadroCompleto();
             const prova=provasDisponiveisNoQuadro().find(p=>p.id===id);
@@ -2802,11 +4023,9 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
         // RENDERIZAÇÃO DO QUADRO ELETRÓNICO
         // =========================================================
         const DEFAULT_QUADRO_CONFIG = {
+            provasVisiveis:'todas',
             rollDurationSec: 15,
-            scrollSpeedPxSec: 60,
-            pauseTopSec: 1.2,
-            pauseBottomSec: 1.5,
-            pausaPreset: 'normal'
+            scrollSpeedPxSec: 60
         };
 
         let quadroConfig = { ...DEFAULT_QUADRO_CONFIG };
@@ -2832,7 +4051,7 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
                 quadroConfig = { ...DEFAULT_QUADRO_CONFIG };
             }
             sincronizarUIConfig();
-            atualizarLabelsConfig();
+            
         }
 
         function guardarConfiguracoesQuadro() {
@@ -2844,6 +4063,7 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
         }
 
         function sincronizarUIConfig() {
+            document.getElementById('filtro-pista').value=quadroConfig.provasVisiveis||'todas';
             // 1. Roll / Rotação
             let stepRollVal = document.getElementById('stepper-roll-val');
             if (stepRollVal) stepRollVal.innerText = quadroConfig.rollDurationSec;
@@ -2857,17 +4077,10 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             let btnToggleRotate = document.getElementById('modal-btn-toggle-rotate');
             let txtToggleRotate = document.getElementById('modal-rotate-switch-text');
             let iconToggleRotate = document.getElementById('modal-rotate-switch-icon');
-            if (btnToggleRotate) {
-                if (autoRotateActive) {
-                    btnToggleRotate.classList.remove('off');
-                    if (txtToggleRotate) txtToggleRotate.innerText = 'Horizontal: LIGADO';
-                    if (iconToggleRotate) iconToggleRotate.innerText = '🔄';
-                } else {
-                    btnToggleRotate.classList.add('off');
-                    if (txtToggleRotate) txtToggleRotate.innerText = 'Horizontal: DESLIGADO';
-                    if (iconToggleRotate) iconToggleRotate.innerText = '⏸️';
-                }
-            }
+            btnToggleRotate.classList.toggle("off", !autoRotateActive);
+            btnToggleRotate.setAttribute("aria-pressed", String(autoRotateActive));
+            txtToggleRotate.textContent=autoRotateActive ? "Ligado" : "Desligado";
+            iconToggleRotate.textContent=autoRotateActive ? "🔄" : "⏸️";
 
             // 2. Scroll Vertical
             let stepScrollVal = document.getElementById('stepper-scroll-val');
@@ -2885,23 +4098,11 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             let btnToggleScroll = document.getElementById('modal-btn-toggle-scroll');
             let txtToggleScroll = document.getElementById('modal-scroll-switch-text');
             let iconToggleScroll = document.getElementById('modal-scroll-switch-icon');
-            if (btnToggleScroll) {
-                if (tableAutoScrollActive) {
-                    btnToggleScroll.classList.remove('off');
-                    if (txtToggleScroll) txtToggleScroll.innerText = 'Scroll: LIGADO';
-                    if (iconToggleScroll) iconToggleScroll.innerText = '⚡';
-                } else {
-                    btnToggleScroll.classList.add('off');
-                    if (txtToggleScroll) txtToggleScroll.innerText = 'Scroll: DESLIGADO';
-                    if (iconToggleScroll) iconToggleScroll.innerText = '⏸️';
-                }
-            }
+            btnToggleScroll.classList.toggle("off", !tableAutoScrollActive);
+            btnToggleScroll.setAttribute("aria-pressed", String(tableAutoScrollActive));
+            txtToggleScroll.textContent=tableAutoScrollActive ? "Ligado" : "Desligado";
+            iconToggleScroll.textContent=tableAutoScrollActive ? "⚡" : "⏸️";
 
-            // 3. Pausas
-            let chipsPausa = document.querySelectorAll('#presets-pausa .config-chip');
-            chipsPausa.forEach(chip => {
-                chip.classList.toggle('active', chip.dataset.p === quadroConfig.pausaPreset);
-            });
         }
 
         function definirDuracaoRoll(segundos) {
@@ -2915,18 +4116,13 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             }
             
             sincronizarUIConfig();
-            atualizarLabelsConfig();
+            
             iniciarRotacao();
         }
 
         function alterarDuracaoRollPorDelta(delta) {
             let nova = (quadroConfig.rollDurationSec || 15) + delta;
             definirDuracaoRoll(nova);
-        }
-
-        function toggleAutoRotateFromModal() {
-            toggleAutoRotate();
-            sincronizarUIConfig();
         }
 
         function definirVelocidadeScroll(pxSec) {
@@ -2944,9 +4140,8 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             isUserInteractingTable = false;
 
             sincronizarUIConfig();
-            atualizarLabelsConfig();
-
             
+
 
             if (!tableScrollTimer) {
                 iniciarAutoScrollTabela();
@@ -2958,24 +4153,11 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             definirVelocidadeScroll(nova);
         }
 
-        function toggleAutoScrollFromModal() {
-            toggleAutoScrollTabela();
-            sincronizarUIConfig();
-        }
-
-        function definirPausaExtremidades(topo, fundo, preset) {
-            quadroConfig.pauseTopSec = topo;
-            quadroConfig.pauseBottomSec = fundo;
-            quadroConfig.pausaPreset = preset;
-            guardarConfiguracoesQuadro();
-            sincronizarUIConfig();
-        }
-
         function reporPredefinicoesQuadro() {
-            quadroConfig = { ...DEFAULT_QUADRO_CONFIG };
+            quadroConfig = { ...DEFAULT_QUADRO_CONFIG };atualizarQuadroCompleto();
             guardarConfiguracoesQuadro();
             sincronizarUIConfig();
-            atualizarLabelsConfig();
+            
             if (autoRotateActive) iniciarRotacao();
             if (tableAutoScrollActive) iniciarAutoScrollTabela();
         }
@@ -2985,15 +4167,27 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
             if (modal) {
                 sincronizarUIConfig();
                 modal.style.display = 'flex';
+                document.getElementById('btn-config-quadro').setAttribute('aria-expanded','true');
+                document.getElementById('filtro-pista').focus();
             }
         }
 
         function fecharModalConfigQuadro() {
             let modal = document.getElementById('modal-config-quadro');
-            if (modal) {
+            if (modal && modal.style.display !== 'none') {
                 modal.style.display = 'none';
+                const botao=document.getElementById('btn-config-quadro');
+                botao.setAttribute('aria-expanded','false');botao.focus();
             }
         }
+
+        document.getElementById('modal-config-quadro').addEventListener('keydown', e=>{
+            if(e.key!=='Tab')return;
+            const controlos=e.currentTarget.querySelectorAll('button:not(:disabled),select:not(:disabled)');
+            const primeiro=controlos[0],ultimo=controlos[controlos.length-1];
+            if(e.shiftKey&&document.activeElement===primeiro){e.preventDefault();ultimo.focus();}
+            if(!e.shiftKey&&document.activeElement===ultimo){e.preventDefault();primeiro.focus();}
+        });
 
         function fecharModalConfigQuadroSeClicouFora(e) {
             if (e.target && e.target.id === 'modal-config-quadro') {
@@ -3066,10 +4260,13 @@ if (!quadroPartilhado && typeof BroadcastChannel !== 'undefined') {
 
         // INICIALIZAÇÃO AUTOMÁTICA
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('quadro-vistas').hidden = quadroPartilhado;
+            document.getElementById('select-vista-quadro').addEventListener('change', mudarVistaQuadro);
+            if (tipoQuadroPodio) document.querySelector('.event-selector-box').hidden = true;
             carregarConfiguracoesQuadro();
             iniciarRelogioDigital();
             ligarSincronizacao();
-            iniciarAutoScrollTabela();
+            atualizarQuadroCompleto();
             window.addEventListener('resize', ajustarAlturaQuadroAoLimiteInferior);
             document.addEventListener('fullscreenchange', () => setTimeout(ajustarAlturaQuadroAoLimiteInferior, 150));
         });
@@ -3112,7 +4309,12 @@ function agruparColunasALFQuadro(keys,colunas,config,participantes){
  return output.join('');
 }
 
+function resultadoValidoNoQuadro(r) {
+ return !r.desistencia&&!r.desqualificado&&r.tempoProvaMs!=null&&r.tempoProvaMs!==''&&Number.isFinite(Number(r.tempoProvaMs))&&Number(r.tempoProvaMs)>=0;
+}
 function atualizarQuadroCompleto() {
+ atualizarVistaQuadro();
+ if(vistaAtualQuadro){CMQuadroPodio.atualizar();return;}
  agendarLayoutResponsivoQuadro();
  const activityName=String(currentProva?.nome||'').trim();
  const activityTitle=document.getElementById('activity-name');
@@ -3126,21 +4328,23 @@ function atualizarQuadroCompleto() {
  if(!currentProva){track.innerHTML='<div class="board-empty">Selecione uma prova para acompanhar os resultados.</div>';document.getElementById('board-summary').textContent='Resultados em tempo real';atualizarUltimasChegadas([]);return;}
  const config=configuracoesClassificacao(currentProva), participants=participantesClassificacao(currentProva).filter(a=>a.ativo!==false&&a.escalaoId&&config[a.escalaoId]?.ativo!==false&&currentProva.escaloesConfig?.[a.escalaoCorridaId || a.escalaoId]?.ativo!==false);
  const keys=[...new Set(participants.map(a=>a.escalaoId))].sort((a,b)=>getOrdemEscalao(a)-getOrdemEscalao(b));
- const results=resultadosClassificacao(currentProva).filter(r=>keys.includes(r.escalaoId));
- const valid=r=>!r.desistencia&&!r.desqualificado;
- const colunas=new Map(['todas',...keys].map(k=>{
+ const valid=resultadoValidoNoQuadro;
+ const results=resultadosClassificacao(currentProva).filter(r=>keys.includes(r.escalaoId)&&(valid(r)||r.desistencia||r.desqualificado));
+ const concluidas=keys.length>0&&keys.every(k=>escalaoConcluidoNoQuadro(k,config));
+ const visiveis=quadroConfig.provasVisiveis==='todas'||quadroConfig.provasVisiveis==='automatico'&&concluidas?keys:keys.filter(k=>config[k]?.horaArranqueMs&&!config[k].horaFimMs);
+ const colunas=new Map(['todas',...visiveis].map(k=>{
  const all=k==='todas', ec=config[k]||{}, enrolled=participants.filter(a=>a.ativo!==false&&(all||a.escalaoId===k)).length;
  const categoryResults=results.filter(r=>all||r.escalaoId===k), finishers=categoryResults.filter(valid).sort((a,b)=>(a.tempoProvaMs||0)-(b.tempoProvaMs||0));
- const running=all?keys.some(key=>config[key]?.horaArranqueMs&&!config[key]?.horaFimMs):!!ec.horaArranqueMs&&!ec.horaFimMs, distance=all?null:distanciaEscalao(k,ec), gender=all?'Classificação geral':ec.grupoClassificacaoALF || (k.endsWith('_F')?'Feminino':k.endsWith('_M')?'Masculino':'Adaptado');
+ const running=all?keys.some(key=>config[key]?.horaArranqueMs&&!config[key]?.horaFimMs):!!ec.horaArranqueMs&&!ec.horaFimMs, distance=all?null:distanciaEscalao(k,ec), gender=all?'Classificação geral':k==='adaptada'?'Classificação conjunta':ec.grupoClassificacaoALF || (k.endsWith('_F')?'Feminino':k.endsWith('_M')?'Masculino':'Adaptado');
  const finished=all?keys.length>0&&keys.every(key=>config[key]?.horaFimMs):escalaoConcluidoNoQuadro(k,config);
- const name=all?(quadroPartilhado?'Classificação geral':'Todas as provas'):ec.nome||categoryResults[0]?.escalaoNome||k;
+ const name=all?'Classificação geral':ec.nome||categoryResults[0]?.escalaoNome||k;
  const podium=[0,1,2].map((i)=>{const r=finishers[i];return `<div class="winner ${['gold','silver','bronze'][i]} ${r?'':'pending'}">${trophySvg}<div><div class="winner-place">${i+1}º lugar · ${['Ouro','Prata','Bronze'][i]}</div><div class="winner-name">${r?safeText(r.nome):'A aguardar chegada'}</div><div class="winner-meta">${r?`${all?safeText(r.escalaoNome||config[r.escalaoId]?.nome||r.escalaoId)+' · ':''}Dorsal ${safeText(r.dorsal)}${athleteClass(r)?' · Turma '+safeText(athleteClass(r)):''}`:'Pódio em atualização'}</div></div><div class="winner-time">${r?formatarTempo(r.tempoProvaMs):'—'}</div></div>`;}).join('');
  const rest=[...finishers.slice(3),...categoryResults.filter(r=>!valid(r))];
  const rows=rest.map((r,i)=>`<tr><td><span class="cell-value"${r.desqualificado?' title="Desclassificado" aria-label="Desclassificado"':''}>${r.desistencia?'DES':r.desqualificado?'DSC':i+4+'º'}</span></td><td><span class="cell-value">${safeText(r.dorsal)}</span></td><td><span class="table-athlete">${safeText(r.nome)}</span><span class="table-class">${all?safeText(r.escalaoNome||config[r.escalaoId]?.nome||r.escalaoId)+' · ':''}${athleteClass(r)?'Turma '+safeText(athleteClass(r)):'Turma —'}</span></td><td><span class="cell-value">${valid(r)?formatarTempo(r.tempoProvaMs):'—'}</span></td></tr>`).join('');
  const cabecalho=ec.alf?`<div class="alf-age-heading"><h3>${safeText(ec.escalaoOrigemNome || name)}</h3><span class="lane-status ${running?'running':''}">${running?'● Em pista':finished?'Concluído':'A aguardar'}</span></div>`:`<div class="lane-kicker"><span>${gender}</span><span class="lane-status ${running?'running':''}">${running?'● Em pista':finished?'Concluído':'A aguardar'}</span></div><h3>${safeText(name)}</h3>`;
- return [k,`<article class="race-lane lane-${k.endsWith('_F')?'female':'male'}" aria-label="${safeText(name)}"><div class="lane-heading">${cabecalho}<div class="lane-metrics"><span>${all?'Todos os escalões':k.startsWith('alf_')?'Participação no escalão de origem':distance?distance.toLocaleString('pt-PT')+' metros':'Distância por definir'}${ec.voltas?' · '+safeText(ec.voltas)+' '+(ec.voltas===1?'volta':'voltas'):''}</span><span class="lane-timer" data-timer="${safeText(k)}">${all?'GERAL':ec.horaArranqueMs?formatarTempoLongo(Math.max(0,(ec.horaFimMs||Date.now())-ec.horaArranqueMs)):'00:00:00'}</span></div><div class="lane-stats"><span>${enrolled} inscritos</span><span>${finishers.length} na meta</span></div></div><div class="lane-podium">${podium}</div><div class="lane-table-title"><span>Restantes classificados</span><span class="${finished?'race-finished-label':''}">${finished?'Prova terminada':rest.length+' atletas'}</span></div><div class="lane-table-scroll" data-key="${safeText(k)}" tabindex="0" aria-label="Classificação de ${safeText(name)}"><table class="lane-table"><thead><tr><th scope="col">Pos.</th><th scope="col">Dorsal</th><th scope="col">Atleta / Turma</th><th scope="col">Tempo</th></tr></thead><tbody>${mensagemRestantesClassificados(rows,finished,finishers.length>0)}</tbody></table></div></article>`];
+ return [k,`<article class="race-lane lane-${k==='adaptada'?'adaptada':k.endsWith('_F')?'female':'male'}" aria-label="${safeText(name)}"><div class="lane-heading">${cabecalho}<div class="lane-metrics"><span>${all?'Todos os escalões':k.startsWith('alf_')?'Participação no escalão de origem':distance?distance.toLocaleString('pt-PT')+' metros':'Distância por definir'}${ec.voltas?' · '+safeText(ec.voltas)+' '+(ec.voltas===1?'volta':'voltas'):''}</span><span class="lane-timer" data-timer="${safeText(k)}">${all?'GERAL':ec.horaArranqueMs?formatarTempoLongo(Math.max(0,(ec.horaFimMs||Date.now())-ec.horaArranqueMs)):'00:00:00'}</span></div><div class="lane-stats"><span>${enrolled} inscritos</span><span>${finishers.length} na meta</span></div></div><div class="lane-podium">${podium}</div><div class="lane-table-title"><span>Restantes classificados</span><span class="${finished?'race-finished-label':''}">${finished?'Prova terminada':rest.length+' atletas'}</span></div><div class="lane-table-scroll" data-key="${safeText(k)}" tabindex="0" aria-label="Classificação de ${safeText(name)}"><table class="lane-table"><thead><tr><th scope="col">Pos.</th><th scope="col">Dorsal</th><th scope="col">Atleta / Turma</th><th scope="col">Tempo</th></tr></thead><tbody>${mensagemRestantesClassificados(rows,finished,finishers.length>0)}</tbody></table></div></article>`];
  }));
- track.innerHTML=keys.length?`<div class="lanes-batch">${agruparColunasALFQuadro(keys,colunas,config,participants)}</div>`:'<div class="board-empty">Nenhum escalão com atletas inscritos nesta prova.</div>';
+ track.innerHTML=`<div class="lanes-batch">${agruparColunasALFQuadro(visiveis,colunas,config,participants)}</div>`;
  document.getElementById('board-summary').textContent=`${keys.length===1?"1 escalão":keys.length+" escalões"} · ${participants.filter(a=>a.ativo!==false).length} inscritos · ${results.filter(valid).length} na meta`;
  document.getElementById('board-update-time').textContent='Atualizado às '+new Date().toLocaleTimeString('pt-PT');
  atualizarUltimasChegadas(results);
@@ -3178,22 +4382,18 @@ function attachLaneControls(){
  });
 }
 function tickCronometrosPista(){const config=configuracoesClassificacao(currentProva),agora=Date.now();document.querySelectorAll('[data-timer]').forEach(el=>{const ec=config[el.dataset.timer];if(ec?.horaArranqueMs){const v=formatarTempoLongo(Math.max(0,(ec.horaFimMs||agora)-ec.horaArranqueMs));if(el.textContent!==v)el.textContent=v;}});}
-function atualizarLabelsConfig(){
- document.getElementById('rotate-label').textContent='Horizontal: '+(autoRotateActive?'ON':'OFF');document.getElementById('btn-rotate').classList.toggle('active',autoRotateActive);
- document.getElementById('scroll-status-text').textContent='Vertical: '+(tableAutoScrollActive?'ON':'OFF');document.getElementById('scroll-status-icon').textContent=tableAutoScrollActive?'↕':'Ⅱ';document.getElementById('btn-toggle-table-scroll').classList.toggle('active',tableAutoScrollActive);
- document.getElementById('btn-rotate').title='Percorrer os escalões horizontalmente';
-}
-function toggleAutoRotate(){autoRotateActive=!autoRotateActive;atualizarLabelsConfig();sincronizarUIConfig();iniciarRotacao();}
-function toggleAutoScrollTabela(){tableAutoScrollActive=!tableAutoScrollActive;atualizarLabelsConfig();sincronizarUIConfig();iniciarAutoScrollTabela();}
+function toggleAutoRotate(){autoRotateActive=!autoRotateActive;sincronizarUIConfig();iniciarRotacao();}
+function toggleAutoScrollTabela(){tableAutoScrollActive=!tableAutoScrollActive;sincronizarUIConfig();iniciarAutoScrollTabela();}
 function iniciarRotacao(){iniciarAutoScrollTabela();}
 function pararRotacao(){}
 function pararAutoScrollTabela(){}
 function resetScrollTabelaAoTopo(){laneMotion.clear();document.querySelectorAll('.lane-table-scroll').forEach(el=>el.scrollTop=0);}
 function iniciarAutoScrollTabela(){
- if(laneFrame!==null)return;
+ if(vistaAtualQuadro||laneFrame!==null)return;
  const viewport=document.getElementById('lanes-viewport');
  if(!viewport.dataset.listeners){viewport.dataset.listeners='true';['wheel','pointerdown','touchstart','keydown'].forEach(type=>viewport.addEventListener(type,()=>{horizontalPause=Date.now()+4000;horizontalPosition=viewport.scrollLeft;},{passive:true}));viewport.addEventListener('scroll',()=>{if(Date.now()<horizontalPause)horizontalPosition=viewport.scrollLeft;},{passive:true});}
  function frame(now){
+ if(vistaAtualQuadro){laneFrame=null;lastLaneFrame=0;return;}
  const dt=lastLaneFrame?Math.min((now-lastLaneFrame)/1000,.1):0;lastLaneFrame=now;
  const track=document.getElementById('lanes-track'),m=cmMedidasQuadro(track);
  if(autoRotateActive&&m.cycle>0&&Date.now()>horizontalPause&&document.getElementById('modal-config-quadro').style.display==='none'){
@@ -3264,6 +4464,7 @@ function agendarLayoutResponsivoQuadro(){
     layoutQuadroFrame=requestAnimationFrame(()=>{layoutQuadroFrame=null;adaptarLayoutResponsivoQuadro();});
 }
 function adaptarLayoutResponsivoQuadro(){
+    if(vistaAtualQuadro)return;
     const viewport=document.getElementById('lanes-viewport');if(!viewport)return;
     const visual=window.visualViewport;
     const width=Math.min(window.innerWidth||Infinity,document.documentElement.clientWidth||Infinity,visual?.width||Infinity);
@@ -3373,7 +4574,15 @@ function ordemClassificacaoALF(id) {
     const index = ['infA','infB','ini','juv','jun','adaptada'].indexOf(base);
     return 20 + (genero === 'M' ? 10 : 0) + (index < 0 ? 6 : index);
 }
-function projetarClassificacaoALF(prova, aluno) {
+function pertenceAProvaAdaptada(aluno) {
+    const idAdaptado = /^(?:alf_)?(?:adaptada|nee)(?:_[MF])?$/i;
+    return aluno?.nee === true || idAdaptado.test(aluno?.escalaoCorridaId || '') || idAdaptado.test(aluno?.escalaoId || '') ||
+        /^(?:prova\s+)?(?:adaptada|nee)\b/i.test(aluno?.escalaoNome || '');
+}
+function projetarClassificacao(prova, aluno) {
+    if (pertenceAProvaAdaptada(aluno)) {
+        return {...aluno, nee:true, escalaoCorridaId:'adaptada', escalaoId:'adaptada', escalaoNome:'Prova Adaptada'};
+    }
     if (!temLimitacoesFuncionais(aluno)) return {...aluno};
     const origem = origemClassificacaoALF(prova, aluno);
     const genero = String(aluno.genero || (String(origem || aluno.escalaoId).endsWith('_F') ? 'F' : 'M')).toUpperCase().startsWith('F') ? 'F' : 'M';
@@ -3392,19 +4601,30 @@ function resultadosClassificacao(prova) {
         const candidato = porDorsal.get(String(r.dorsal));
         const aluno = candidato && (r.processo == null || String(candidato.processo) === String(r.processo)) ? candidato : null;
         const alf = aluno ? temLimitacoesFuncionais(aluno) : temLimitacoesFuncionais(r);
-        return projetarClassificacaoALF(prova, {...r, alf, limitacoesFuncionais:alf, genero:aluno?.genero || r.genero});
+        return projetarClassificacao(prova, {...r, nee:r.nee === true || (!r.escalaoCorridaId && !r.escalaoId && pertenceAProvaAdaptada(aluno)), alf, limitacoesFuncionais:alf, genero:aluno?.genero || r.genero});
     });
 }
 function participantesClassificacao(prova) {
-    return (prova?.participantes || []).filter(a => !a.voluntario).map(a => projetarClassificacaoALF(prova,a));
+    return (prova?.participantes || []).filter(a => !a.voluntario).map(a => projetarClassificacao(prova,a));
 }
 function configuracoesClassificacao(prova) {
     const configs = {...(prova?.escaloesConfig || {})};
     // Ignore any old combined classification entries without changing saved race settings.
     for (const id of Object.keys(configs)) if (id.startsWith('alf_')) delete configs[id];
+    const idsAdaptadosAntigos=Object.keys(configs).filter(id=>/^(?:nee(?:_[MF])?|adaptada_[MF])$/i.test(id));
+    if (!configs.adaptada) {
+        const antigas=idsAdaptadosAntigos.map(id=>configs[id]);
+        if (antigas.length) {
+            const ativas = antigas.filter(c=>c.ativo !== false), partidas=ativas.map(c=>c.horaArranqueMs).filter(Boolean);
+            configs.adaptada={...antigas[0],nome:'Prova Adaptada',ativo:!!ativas.length,
+                horaArranqueMs:partidas.length ? Math.min(...partidas) : null,
+                horaFimMs:ativas.length && ativas.every(c=>c.horaFimMs) ? Math.max(...ativas.map(c=>c.horaFimMs)) : null};
+        }
+    }
+    for(const id of idsAdaptadosAntigos)delete configs[id];
     const inscritos = participantesClassificacao(prova).filter(a => a.ativo !== false);
     for (const aluno of [...inscritos, ...resultadosClassificacao(prova)]) {
-        if (!temLimitacoesFuncionais(aluno) || configs[aluno.escalaoId]) continue;
+        if (!String(aluno.escalaoId).startsWith('alf_') || configs[aluno.escalaoId]) continue;
         const origem = prova?.escaloesConfig?.[aluno.escalaoCorridaId] || {};
         configs[aluno.escalaoId] = {...origem, nome:aluno.escalaoNome, alf:true,
             escalaoCorridaId:aluno.escalaoCorridaId, escalaoOrigemNome:aluno.escalaoOrigemNome,
@@ -3414,6 +4634,494 @@ function configuracoesClassificacao(prova) {
     return configs;
 }
 
+</script><script id="cm-quadros-podio-js">
+const CMQuadroPodio = (() => {
+    const porId = id => document.getElementById(id);
+    const lugares = ['1.º lugar', '2.º lugar', '3.º lugar'];
+    let entrega = false, modoRenderizado;
+    let grupos = [], escolhido = null, assinatura = '', sigOpcoes = '';
+    let inicializado = false, scrollClassificacao, fecharDestaque = null;
+
+    function elemento(tag, classe, texto) {
+        const no = document.createElement(tag);
+        if (classe) no.className = classe;
+        if (texto != null) no.textContent = texto;
+        return no;
+    }
+
+    function obterPodios(prova) {
+        const config = configuracoesClassificacao(prova);
+        const porEscalao = new Map();
+        const idsPorNome = new Map();
+        function incluir(id, fallback) {
+            const escalao = config[id];
+            const tipo = id === 'adaptada' ? 'adaptada' : id.startsWith('alf_') ? 'lf' : id.endsWith('_F') ? 'feminino' : '';
+            const grupo = {
+                id, tipo, nome: String(escalao?.nome || fallback || id), atletas: [],
+                provisorio: Boolean(escalao?.horaArranqueMs && !escalao.horaFimMs)
+            };
+            porEscalao.set(id, grupo);
+            return grupo;
+        }
+        for (const [id, escalao] of Object.entries(config)) {
+            if (escalao.nome) idsPorNome.set(escalao.nome, id);
+            if (escalao.ativo !== false) incluir(id);
+        }
+        const resultados = resultadosClassificacao(prova).filter(resultadoValidoNoQuadro)
+            .sort((a, b) => Number(a.tempoProvaMs) - Number(b.tempoProvaMs));
+        for (const resultado of resultados) {
+            const { dorsal, processo, nome, escalaoNome, escalaoId, tempoProvaMs } = resultado;
+            const id = String(escalaoId || idsPorNome.get(escalaoNome) || escalaoNome || 'geral');
+            const grupo = porEscalao.get(id) || incluir(id, escalaoNome || (id === 'geral' ? 'Geral' : id));
+            if (grupo.atletas.length === lugares.length) continue;
+            grupo.atletas.push({
+                chave: JSON.stringify([dorsal ?? '', processo ?? '', dorsal == null && processo == null ? nome : '']),
+                nome: nome || 'Nome indisponível',
+                turma: athleteClass(resultado).trim(),
+                dorsal,
+                tempo: formatarTempo(tempoProvaMs)
+            });
+        }
+        return [...porEscalao.values()].sort((a, b) => getOrdemEscalao(a.id) - getOrdemEscalao(b.id) ||
+            a.nome.localeCompare(b.nome, 'pt-PT', { numeric: true, sensitivity: 'base' }));
+    }
+
+    function criarCartaoEscalao(grupo, classe = '') {
+        const cartao = elemento('article', ['podio-escalao', classe].filter(Boolean).join(' '));
+        cartao.dataset.escalao = grupo.id;
+        cartao.dataset.tipo = grupo.tipo;
+        const cabecalho = elemento('div', 'podio-escalao-cabecalho');
+        cabecalho.append(elemento('h3', '', grupo.nome));
+        if (grupo.provisorio && grupo.atletas.length) cabecalho.append(elemento('span', 'podio-estado', 'Provisório'));
+        if (!grupo.atletas.length) cabecalho.append(elemento('p', 'podio-sem-lugar', 'Sem atletas classificados'));
+        cartao.append(cabecalho);
+        return cartao;
+    }
+
+    function identidadeAtleta(atleta, detalhe) {
+        const identidade = elemento('span', 'podio-identidade');
+        identidade.append(elemento('strong', 'podio-nome', atleta.nome));
+        if (detalhe) identidade.append(elemento('span', 'podio-detalhe', detalhe));
+        return identidade;
+    }
+
+    function cartaoClassificacao(grupo) {
+        const cartao = criarCartaoEscalao(grupo);
+        if (!grupo.atletas.length) return cartao;
+        const lista = elemento('ol', 'podio-lugares');
+        lista.setAttribute('role', 'list');
+        for (const [indice, atleta] of grupo.atletas.entries()) {
+            const linha = elemento('li');
+            const lugar = elemento('span', 'podio-lugar', lugares[indice]);
+            const ficha = elemento('div', 'podio-atleta');
+            ficha.dataset.lugar = String(indice + 1);
+            const detalhe = [atleta.turma, atleta.tempo].filter(Boolean).join(' · ');
+            ficha.append(lugar, identidadeAtleta(atleta, detalhe));
+            linha.append(ficha);
+            lista.append(linha);
+        }
+        cartao.append(lista);
+        return cartao;
+    }
+
+    function medalha(numero) {
+        const disco = elemento('span', 'podio-medalha');
+        disco.setAttribute('aria-hidden', 'true');
+        disco.append(elemento('b', '', numero));
+        return disco;
+    }
+
+    function detalheEntrega(atleta) {
+        return [atleta.turma, atleta.dorsal ? 'Dorsal ' + atleta.dorsal : ''].filter(Boolean).join(' · ');
+    }
+
+    function cartaoEntrega(grupo) {
+        const cartao = criarCartaoEscalao(grupo, 'podio-cerimonia');
+        const cena = elemento('div', 'podio-cena');
+        const palco = elemento('ol', 'podio-lugares podio-palco');
+        palco.setAttribute('role', 'list');
+        palco.setAttribute('aria-label', 'Pódio · ' + grupo.nome);
+        // Camada de destaque: nome do atleta em grande sobre o pódio desfocado.
+        const foco = elemento('div', 'podio-foco');
+        foco.setAttribute('role', 'button');
+        // Ao redesenhar com um atleta já escolhido, a entrada não volta a ser animada.
+        if (escolhido) cartao.classList.add('sem-entrada');
+
+        function preencherFoco(atleta, indice) {
+            const numero = String(indice + 1);
+            const detalhe = detalheEntrega(atleta);
+            const raios = elemento('span', 'podio-foco-raios');
+            raios.setAttribute('aria-hidden', 'true');
+            const partes = [raios, medalha(numero), elemento('span', 'podio-foco-lugar', numero + 'º lugar'),
+                elemento('strong', 'podio-foco-nome', atleta.nome)];
+            if (detalhe) partes.push(elemento('span', 'podio-foco-detalhe', detalhe));
+            partes.push(elemento('span', 'podio-foco-escalao', grupo.nome),
+                elemento('span', 'podio-foco-dica', 'Clique novamente para voltar ao pódio'));
+            foco.dataset.lugar = numero;
+            foco.dataset.atleta = atleta.chave;
+            foco.setAttribute('aria-label', numero + 'º lugar · ' + atleta.nome + (detalhe ? ' · ' + detalhe : '') + '. Voltar ao pódio');
+            foco.replaceChildren(...partes);
+        }
+
+        function aplicarDestaque() {
+            let selecionada = null;
+            for (const ficha of palco.querySelectorAll('button.podio-premiado')) {
+                const ativa = !selecionada && ficha.dataset.atleta === escolhido;
+                ficha.setAttribute('aria-pressed', String(ativa));
+                if (ativa) selecionada = ficha;
+            }
+            if (selecionada) {
+                const indice = Number(selecionada.dataset.lugar) - 1;
+                preencherFoco(grupo.atletas[indice], indice);
+                cartao.dataset.destaque = selecionada.dataset.lugar;
+                foco.tabIndex = 0;
+                foco.removeAttribute('aria-hidden');
+            } else {
+                delete cartao.dataset.destaque;
+                delete foco.dataset.atleta;
+                foco.tabIndex = -1;
+                foco.setAttribute('aria-hidden', 'true');
+            }
+            palco.inert = Boolean(selecionada);
+            return selecionada;
+        }
+
+        function abrir(atleta) {
+            escolhido = atleta.chave;
+            cartao.classList.remove('sem-entrada');
+            if (aplicarDestaque()) foco.focus({ preventScroll: true });
+        }
+
+        function fechar() {
+            const lugar = cartao.dataset.destaque;
+            if (!lugar) return;
+            escolhido = null;
+            aplicarDestaque();
+            palco.querySelector('button.podio-premiado[data-lugar="' + lugar + '"]')?.focus({ preventScroll: true });
+        }
+        fecharDestaque = fechar;
+
+        foco.addEventListener('click', fechar);
+        foco.addEventListener('keydown', evento => {
+            if (evento.key !== 'Enter' && evento.key !== ' ') return;
+            evento.preventDefault();
+            fechar();
+        });
+
+        for (const [indice, lugar] of lugares.entries()) {
+            const numero = String(indice + 1);
+            const atleta = grupo.atletas[indice];
+            const coluna = elemento('li', 'podio-coluna');
+            coluna.dataset.lugar = numero;
+            const degrau = elemento('span', 'podio-degrau');
+            degrau.setAttribute('aria-hidden', 'true');
+            degrau.append(elemento('b', '', numero));
+            const ficha = elemento(atleta ? 'button' : 'div', 'podio-atleta podio-premiado');
+            ficha.dataset.lugar = numero;
+            if (atleta) {
+                ficha.type = 'button';
+                ficha.dataset.atleta = atleta.chave;
+                ficha.setAttribute('aria-label', lugar + ' · ' + atleta.nome);
+                ficha.append(identidadeAtleta(atleta, detalheEntrega(atleta)));
+                // Clicar em qualquer parte do lugar (medalha, nome ou bloco) põe o atleta em destaque.
+                coluna.addEventListener('click', () => abrir(atleta));
+            } else {
+                ficha.classList.add('podio-sem-lugar');
+                ficha.setAttribute('aria-label', lugar + ' por apurar');
+                ficha.textContent = '—';
+            }
+            coluna.append(medalha(numero), ficha, degrau);
+            palco.append(coluna);
+        }
+        cena.append(foco, palco);
+        cartao.append(cena);
+        aplicarDestaque();
+        return cartao;
+    }
+
+    function mostrarEntrega() {
+        const seletor = porId('podio-seletor'), conteudo = porId('podio-conteudo');
+        const grupo = grupos.find(g => g.id === seletor.value);
+        if (!grupo?.atletas.some(a => a.chave === escolhido)) escolhido = null;
+        const foco = conteudo.contains(document.activeElement) ? document.activeElement.dataset.atleta : null;
+        fecharDestaque = null;
+        const grelha = elemento('div', 'podio-grelha');
+        grelha.append(grupo ? cartaoEntrega(grupo) : elemento('p', 'podio-vazio', 'Ainda não há escalões para apresentar.'));
+        conteudo.replaceChildren(grelha);
+        if (foco) {
+            const ficha = Array.from(conteudo.querySelectorAll('[data-atleta]'))
+                .find(b => b.dataset.atleta === foco && b.tabIndex >= 0 && !b.closest('[inert]'));
+            (ficha || seletor).focus({ preventScroll: true });
+        }
+    }
+
+    // Classificação por escalão: escolhe colunas e tamanho de letra para caber tudo na janela.
+    const LARGURA_MINIMA_CARTAO = 270;
+    const FONTE_MINIMA = 14, FONTE_MAXIMA = 46, FONTE_COM_SCROLL = 18;
+    let ajusteAgendado = 0;
+
+    function ajustarClassificacao() {
+        const quadro = porId('quadro-podio'), conteudo = porId('podio-conteudo');
+        const grelha = conteudo.querySelector('.podio-grelha:not([data-podio-copia])');
+        if (vistaAtualQuadro !== 'classificacao' || quadro.hidden || !grelha?.children.length || !matchMedia('screen').matches) return;
+        const barra = quadro.querySelector('.podio-toolbar');
+        const estilo = getComputedStyle(conteudo);
+        const altura = quadro.clientHeight - barra.offsetHeight - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom);
+        const largura = conteudo.clientWidth - parseFloat(estilo.paddingLeft) - parseFloat(estilo.paddingRight);
+        const espaco = parseFloat(getComputedStyle(grelha).columnGap) || 0;
+        const total = grelha.children.length;
+        const maximo = Math.max(1, Math.min(total, Math.floor((largura + espaco) / (LARGURA_MINIMA_CARTAO + espaco))));
+        conteudo.dataset.colunas = 'a-medir';
+        conteudo.classList.add('podio-a-medir');
+        const cabe = (colunas, fonte) => {
+            conteudo.style.setProperty('--podio-colunas', colunas);
+            conteudo.style.setProperty('--podio-fonte', fonte + 'px');
+            return grelha.offsetHeight <= altura + .5;
+        };
+        let melhor = null;
+        for (let colunas = 1; colunas <= maximo; colunas++) {
+            if (!cabe(colunas, FONTE_MINIMA)) continue;
+            // Procura o maior tamanho de letra que ainda cabe com estas colunas.
+            let baixo = FONTE_MINIMA, alto = FONTE_MAXIMA;
+            if (cabe(colunas, alto)) baixo = alto;
+            else while (alto - baixo > .5) {
+                const meio = (baixo + alto) / 2;
+                if (cabe(colunas, meio)) baixo = meio; else alto = meio;
+            }
+            const linhas = Math.ceil(total / colunas);
+            const larguraCartao = (largura - espaco * (colunas - 1)) / colunas;
+            const alturaCartao = (altura - espaco * (linhas - 1)) / linhas;
+            // Letra maior primeiro; poucas casas vazias e cartões pouco esguios desempatam.
+            const nota = baixo - 1.2 * (linhas * colunas - total) - (larguraCartao < alturaCartao * .8 ? 1.5 : 0);
+            if (!melhor || nota > melhor.nota) melhor = { colunas, fonte: Math.floor(baixo * 2) / 2, nota };
+        }
+        // Se não couber, usa o máximo de colunas e o deslocamento automático trata do resto.
+        conteudo.dataset.ajuste = melhor ? 'cabe' : 'scroll';
+        melhor ||= { colunas: maximo, fonte: FONTE_COM_SCROLL };
+        conteudo.style.setProperty('--podio-colunas', melhor.colunas);
+        conteudo.style.setProperty('--podio-fonte', melhor.fonte + 'px');
+        conteudo.dataset.colunas = String(melhor.colunas);
+        conteudo.classList.remove('podio-a-medir');
+    }
+
+    function agendarAjusteClassificacao() {
+        clearTimeout(ajusteAgendado);
+        ajusteAgendado = setTimeout(() => {
+            ajusteAgendado = 0;
+            if (vistaAtualQuadro !== 'classificacao') return;
+            const quadro = porId('quadro-podio'), posicao = quadro.scrollTop;
+            ajustarClassificacao();
+            scrollClassificacao?.atualizar(posicao);
+        }, 80);
+    }
+
+    function limparAjusteClassificacao() {
+        const conteudo = porId('podio-conteudo');
+        delete conteudo.dataset.colunas;
+        delete conteudo.dataset.ajuste;
+        conteudo.classList.remove('podio-a-medir');
+        conteudo.style.removeProperty('--podio-colunas');
+        conteudo.style.removeProperty('--podio-fonte');
+    }
+
+    function criarScrollClassificacao() {
+        const quadro = porId('quadro-podio');
+        const conteudo = porId('podio-conteudo');
+        const botao = porId('podio-scroll-auto');
+        const barra = quadro.querySelector('.podio-toolbar');
+        const reduzirMovimento = matchMedia('(prefers-reduced-motion: reduce)');
+        const ecra = matchMedia('screen');
+        let ligado = !reduzirMovimento.matches, aImprimir = false;
+        let frame = 0, instanteAnterior = 0, posicao = 0, scrollAnterior = 0;
+        let copia, ciclo = 0;
+
+        function parar() {
+            cancelAnimationFrame(frame);
+            frame = instanteAnterior = 0;
+        }
+
+        function retirarCopia() {
+            copia?.remove();
+            copia = null;
+            ciclo = 0;
+        }
+
+        function definirPosicao(novaPosicao) {
+            posicao = Math.max(0, novaPosicao) % ciclo;
+            quadro.scrollTop = Math.floor(posicao);
+            scrollAnterior = quadro.scrollTop;
+        }
+
+        function atualizar(posicaoAnterior) {
+            const grelha = conteudo.firstElementChild;
+            const haScroll = vistaAtualQuadro === 'classificacao' && ecra.matches &&
+                grelha?.classList.contains('podio-grelha') &&
+                grelha.offsetHeight + barra.offsetHeight > quadro.clientHeight + 1;
+            botao.hidden = !haScroll;
+            const rotulo = ligado ? 'Pausar scroll' : 'Retomar scroll';
+            if (botao.textContent !== rotulo) botao.textContent = rotulo;
+            if (!haScroll || !ligado || aImprimir) {
+                parar();
+                retirarCopia();
+                return;
+            }
+
+            const novaCopia = copia?.previousElementSibling !== grelha;
+            const posicaoAtual = posicaoAnterior ?? quadro.scrollTop;
+            if (novaCopia) {
+                retirarCopia();
+                // A cópia prolonga a lista até o primeiro escalão voltar ao topo.
+                copia = grelha.cloneNode(true);
+                copia.setAttribute('data-podio-copia', '');
+                copia.setAttribute('aria-hidden', 'true');
+                copia.setAttribute('inert', '');
+                copia.querySelectorAll('[data-escalao]').forEach(cartao => cartao.removeAttribute('data-escalao'));
+                conteudo.append(copia);
+            }
+            ciclo = copia.getBoundingClientRect().top - grelha.getBoundingClientRect().top;
+            if (novaCopia || posicaoAnterior != null || posicao >= ciclo) definirPosicao(posicaoAtual);
+
+            if (document.hidden) {
+                parar();
+            } else if (!frame) {
+                definirPosicao(quadro.scrollTop);
+                frame = requestAnimationFrame(avancar);
+            }
+        }
+
+        function avancar(agora) {
+            const dt = instanteAnterior ? Math.min((agora - instanteAnterior) / 1000, .08) : 0;
+            instanteAnterior = agora;
+            const atual = quadro.scrollTop;
+            if (atual !== scrollAnterior) posicao = atual;
+            const velocidade = Math.min(450, Math.max(15, Number(quadroConfig.scrollSpeedPxSec) || 60));
+            definirPosicao(posicao + velocidade * dt);
+            frame = requestAnimationFrame(avancar);
+        }
+
+        function repor() {
+            parar();
+            retirarCopia();
+        }
+
+        const verificar = () => atualizar();
+        botao.addEventListener('click', () => {
+            ligado = !ligado;
+            verificar();
+        });
+        reduzirMovimento.addEventListener?.('change', evento => {
+            ligado = !evento.matches;
+            verificar();
+        });
+        if (typeof ResizeObserver === 'function') {
+            const observador = new ResizeObserver(verificar);
+            observador.observe(quadro);
+            observador.observe(conteudo);
+            observador.observe(barra);
+        } else {
+            window.addEventListener('resize', verificar);
+        }
+        ecra.addEventListener?.('change', verificar);
+        document.addEventListener('visibilitychange', verificar);
+        window.addEventListener('beforeprint', () => { aImprimir = true; verificar(); });
+        window.addEventListener('afterprint', () => { aImprimir = false; verificar(); });
+        return { atualizar, repor };
+    }
+
+    function preparar() {
+        if (inicializado) return;
+        inicializado = true;
+        scrollClassificacao = criarScrollClassificacao();
+        porId('podio-seletor').addEventListener('change', () => {
+            escolhido = null;
+            mostrarEntrega();
+        });
+        porId('podio-imprimir').addEventListener('click', () => window.print());
+        // Esc também volta ao pódio quando há um atleta em destaque.
+        document.addEventListener('keydown', evento => {
+            if (evento.key !== 'Escape' || !entrega || !fecharDestaque) return;
+            if (!porId('podio-conteudo').querySelector('.podio-cerimonia[data-destaque]')) return;
+            evento.preventDefault();
+            fecharDestaque();
+        });
+        if (typeof ResizeObserver === 'function') new ResizeObserver(agendarAjusteClassificacao).observe(porId('quadro-podio'));
+        window.addEventListener('resize', agendarAjusteClassificacao);
+        document.fonts?.ready.then(agendarAjusteClassificacao).catch(() => {});
+    }
+
+    function atualizar() {
+        preparar();
+        if (modoRenderizado !== vistaAtualQuadro) {
+            modoRenderizado = vistaAtualQuadro;
+            entrega = modoRenderizado === 'entrega';
+            assinatura = sigOpcoes = '';
+            escolhido = null;
+            porId('podio-titulo').textContent = entrega ? 'Entrega de certificados' : 'Quadro de classificação';
+            porId('quadro-podio').scrollTop = 0;
+            scrollClassificacao.repor();
+            limparAjusteClassificacao();
+            fecharDestaque = null;
+        }
+        const prova = currentProva;
+        const nome = prova?.nome || 'Corta-Mato Escolar';
+        const atividade = porId('activity-name');
+        atividade.textContent = nome;
+        atividade.title = nome;
+        document.title = porId('podio-titulo').textContent + (prova ? ' · ' + nome : ' · Corta-Mato Escolar');
+        const data = String(prova?.dataProva || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+        const detalhes = [prova?.nomeEscola, data ? data.slice(1).reverse().join('/') : ''].filter(Boolean).join(' · ');
+        const fichaProva = porId('podio-prova');
+        fichaProva.replaceChildren();
+        if (prova) fichaProva.append(elemento('span', 'podio-prova-nome', nome + (detalhes ? ' · ' : '')), detalhes);
+        const novos = prova ? obterPodios(prova) : [];
+        const acesso = Boolean(prova || lerSessaoGestaoQuadro());
+        const sig = JSON.stringify([prova?.id, acesso, novos]);
+        if (sig === assinatura) return;
+        assinatura = sig;
+        grupos = novos;
+        const conteudo = porId('podio-conteudo');
+        const seletor = porId('podio-seletor');
+        porId('podio-filtro').hidden = !entrega || !prova || !grupos.length;
+        porId('podio-acoes').hidden = entrega || !prova || !grupos.length;
+        if (!prova || !grupos.length) {
+            escolhido = null;
+            sigOpcoes = '';
+            seletor.replaceChildren();
+            const mensagem = !acesso ? 'Abra este quadro a partir da gestão com uma sessão válida.'
+                : !prova ? 'Prova indisponível. Confirme a prova selecionada na gestão.'
+                : 'Ainda não há escalões para apresentar.';
+            const aviso = elemento('p', 'podio-vazio', mensagem);
+            aviso.setAttribute('role', 'status');
+            conteudo.replaceChildren(aviso);
+            scrollClassificacao.atualizar();
+            return;
+        }
+        if (entrega) {
+            const opcoes = JSON.stringify(grupos.map(g => [g.id, g.nome]));
+            if (opcoes !== sigOpcoes) {
+                const anterior = seletor.value;
+                seletor.replaceChildren(...grupos.map(g => new Option(g.nome, g.id)));
+                seletor.value = grupos.some(g => g.id === anterior) ? anterior
+                    : (grupos.find(g => g.atletas.length) || grupos[0]).id;
+                sigOpcoes = opcoes;
+            }
+            mostrarEntrega();
+            scrollClassificacao.atualizar();
+        } else {
+            const posicaoAnterior = porId('quadro-podio').scrollTop;
+            const grelha = elemento('div', 'podio-grelha');
+            grelha.append(...grupos.map(cartaoClassificacao));
+            conteudo.replaceChildren(grelha);
+            ajustarClassificacao();
+            scrollClassificacao.atualizar(posicaoAnterior);
+        }
+    }
+    function repor() {
+        modoRenderizado = '';
+        scrollClassificacao?.repor();
+    }
+    return { atualizar, repor };
+})();
 </script><script id="cm-public-results-mode">
 function partilhaQuadroIndisponivel(mensagem='Este link de resultados foi eliminado ou já não está disponível.'){
  provaPartilhadaAutorizadaQuadro='';appState={provas:[],currentProvaId:null};currentProva=null;acessoProvaQuadro=null;provaPendenteQuadro='';
@@ -3537,7 +5245,7 @@ window.CMVisual=(()=>{
   if(input.parentElement.classList.contains('visual-password-wrap'))return;const wrap=element('div','visual-password-wrap');input.before(wrap);wrap.append(input);const button=action('Mostrar',()=>{const show=input.type==='password';input.type=show?'text':'password';button.textContent=show?'Ocultar':'Mostrar';button.setAttribute('aria-pressed',String(show));button.setAttribute('aria-label',(show?'Ocultar':'Mostrar')+' palavra-passe');},'visual-password-toggle');button.setAttribute('aria-pressed','false');button.setAttribute('aria-label','Mostrar palavra-passe');wrap.append(button);
  });}
  function access(){
-  const main=$('main');if(main){main.id ||= 'visual-conteudo';main.tabIndex=-1;const skip=element('a','visual-skip','Saltar para o conteúdo');skip.href='#'+main.id;document.body.prepend(skip);}
+  const main=vistaAtualQuadro?$('#quadro-podio'):$('main');if(main){const skip=element('a','visual-skip','Saltar para o conteúdo');skip.href='#'+main.id;document.body.prepend(skip);}
   all('button:not([aria-label])').forEach(b=>{if(b.title)b.setAttribute('aria-label',b.title);});
   const names={'search-participantes':'Procurar aluno','filter-ano':'Filtrar por ano','filter-turma':'Filtrar por turma','search-resultados':'Procurar nas classificações','filtro-escalao-resultados':'Filtrar classificações por escalão','select-prova-quadro':'Selecionar prova','consent-ano':'Filtrar ano dos consentimentos','consent-turma':'Filtrar turma dos consentimentos'};
   for(const [id,label]of Object.entries(names))$('#'+id)?.setAttribute('aria-label',label);
@@ -3551,7 +5259,7 @@ window.CMVisual=(()=>{
  let started=false;
  function iniciar(){if(started||!document.body)return;started=true;
   if(document.body.classList.contains('visual-gestao'))gestao();else if(document.body.classList.contains('visual-reader'))readers();else{
-   rename('.brand-sub','Corta-Mato · Classificações ao vivo');rename('.live-tag>span:last-child','Em direto');
+   rename('.brand-sub',vistaAtualQuadro?'Corta-Mato Escolar':'Corta-Mato · Classificações ao vivo');rename('.live-tag>span:last-child','Em direto');
    const badge=$('.brand-badge-box');if(badge){badge.textContent='';badge.append(mark());}
   }
   all('footer').forEach(f=>f.classList.add('visual-footer'));passwords();access();
@@ -3604,7 +5312,7 @@ window.CMVisualRefinado=(()=>{
   if(/frente|trás|plano|camada|fundo/.test(value))return /escolher|imagem|retirar/.test(value)?'image':'layers';if(/imagem|logótipo|logotipo/.test(value))return 'image';if(/negrito/.test(value))return 'bold';if(/itálico|italico/.test(value))return 'italic';
   if(/editar|personalizar|desenho/.test(value))return 'palette';if(/contas|utilizadores/.test(value))return 'users';if(/sair|terminar sessão/.test(value))return 'exit';if(/validar|confirmar|aplicar|ativar/.test(value))return 'check';if(/modelos|modelo/.test(value))return 'folder';if(/justificação|email/.test(value))return 'mail';if(/iniciar|partida/.test(value))return 'play';if(/terminar|parar/.test(value))return 'stop';if(/dorsais|dorsal/.test(value))return 'qr';if(/ajuda|utilizar/.test(value))return 'help';if(/opções|velocidade/.test(value))return 'settings';return null;
  }
- const ignored='#print-area,[data-editor-elemento],.dorsal,.cert-page,.consent-page,.visual-step-number,.visual-step-label';
+ const ignored='#print-area,[data-editor-elemento],.dorsal,.cert-page,.consent-page,.visual-step-number,.visual-step-label,.podio-atleta';
  function decorate(button){
   if(!button?.matches?.('button,.btn,summary')||button.closest(ignored)||button.classList.contains('tab-btn'))return;
   if($('svg:not(.visual-icon)',button))return;
