@@ -3782,6 +3782,16 @@ const CMPartilhaResultados=(()=>{
                 <div class="config-group">
                     <div class="config-group-header">
                         <div>
+                            <div class="config-label">Música dos certificados</div>
+                            <div class="config-desc">Na entrega de certificados, toca ao clicar no nome e continua até fechar o destaque.</div>
+                            <div class="config-desc" id="cm-som-config-estado">Sem música escolhida.</div>
+                        </div>
+                        <button type="button" class="btn-toggle-switch" id="cm-som-config">🎵 Escolher música</button>
+                    </div>
+                </div>
+                <div class="config-group">
+                    <div class="config-group-header">
+                        <div>
                             <div class="config-label">Deslocamento horizontal dos escalões</div>
                             <div class="config-desc">Tempo de deslocamento entre colunas.</div>
                         </div>
@@ -5006,11 +5016,14 @@ const CMQuadroPodio = (() => {
                 const indice = Number(selecionada.dataset.indice);
                 preencherFoco(grupo.atletas[indice], indice);
                 cartao.dataset.destaque = selecionada.dataset.indice;
+                // Música do certificado: toca em ciclo enquanto o nome estiver em destaque.
+                window.CMSomCertificados?.tocar(participacao ? 'part' : String(indice + 1));
                 foco.tabIndex = 0;
                 foco.removeAttribute('aria-hidden');
             } else {
                 delete cartao.dataset.destaque;
                 delete foco.dataset.atleta;
+                if (!escolhido) window.CMSomCertificados?.parar();
                 foco.tabIndex = -1;
                 foco.setAttribute('aria-hidden', 'true');
             }
@@ -5642,5 +5655,162 @@ window.CMVisualRefinado=(()=>{
 })();
 
 </script>
-<script id="cm-percurso-quadro-ui">(()=>{function iniciar(){const g=document.querySelector(".header-brand-group");if(g&&!g.querySelector(".cmp-mark")){const m=document.createElement("span");m.className="cmp-mark";m.innerHTML='<svg viewBox="0 0 24 24" class="cmp-ico" aria-hidden="true" focusable="false"><path d="M5 21V3m0 1c5-4 9 4 15 0v10c-6 4-10-4-15 0"/></svg>';g.prepend(m);}const a=document.getElementById("credit-year");if(a)a.textContent=String(new Date().getFullYear());if(window.CMTema)CMTema.botao(document.querySelector(".header-controls"),"btn-ctrl cm-tema-btn");const m=document.getElementById("modal-config-quadro");if(m){const w=document.createTreeWalker(m,NodeFilter.SHOW_TEXT),re=/[\p{Extended_Pictographic}️‍]+\s*/gu;let n;while((n=w.nextNode())){const p=n.parentElement;if(!p||p.closest("#modal-rotate-switch-icon,#modal-scroll-switch-icon,.modal-icon"))continue;let t=n.textContent.replace(/➖/g,"−").replace(/➕/g,"+");if(p.closest(".modal-btn-close,.btn-modal-reset"))t=t.replace(/[✕↺]/g,"");t=t.replace(re,"");if(t!==n.textContent)n.textContent=t;}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",iniciar);else iniciar();})();</script></body>
+<script id="cm-percurso-quadro-ui">(()=>{function iniciar(){const g=document.querySelector(".header-brand-group");if(g&&!g.querySelector(".cmp-mark")){const m=document.createElement("span");m.className="cmp-mark";m.innerHTML='<svg viewBox="0 0 24 24" class="cmp-ico" aria-hidden="true" focusable="false"><path d="M5 21V3m0 1c5-4 9 4 15 0v10c-6 4-10-4-15 0"/></svg>';g.prepend(m);}const a=document.getElementById("credit-year");if(a)a.textContent=String(new Date().getFullYear());if(window.CMTema)CMTema.botao(document.querySelector(".header-controls"),"btn-ctrl cm-tema-btn");const m=document.getElementById("modal-config-quadro");if(m){const w=document.createTreeWalker(m,NodeFilter.SHOW_TEXT),re=/[\p{Extended_Pictographic}️‍]+\s*/gu;let n;while((n=w.nextNode())){const p=n.parentElement;if(!p||p.closest("#modal-rotate-switch-icon,#modal-scroll-switch-icon,.modal-icon"))continue;let t=n.textContent.replace(/➖/g,"−").replace(/➕/g,"+");if(p.closest(".modal-btn-close,.btn-modal-reset"))t=t.replace(/[✕↺]/g,"");t=t.replace(re,"");if(t!==n.textContent)n.textContent=t;}}}if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",iniciar);else iniciar();})();</script><style id="cm-som-certificados-css">
+.cm-som-dlg{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;border:0;border-radius:18px;padding:22px 24px;background:#fff;color:#13213f;box-shadow:0 24px 60px rgba(8,15,30,.35);font-family:inherit}
+.cm-som-dlg::backdrop{background:rgba(8,15,30,.55)}
+.cm-som-dlg h3{margin:0 0 6px;font-size:20px}
+.cm-som-dlg p{margin:0 0 14px;color:#4b5a73;font-size:14px;line-height:1.45}
+.cm-som-mesmo{display:flex;align-items:center;gap:8px;margin:0 0 6px;font-weight:700;font-size:14px;cursor:pointer}
+.cm-som-linha{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 12px;align-items:center;padding:12px 0;border-top:1px solid #e2e8f0}
+.cm-som-linha strong{font-size:14px}
+.cm-som-ficheiro{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:#4b5a73}
+.cm-som-ficheiro.vazio{font-style:italic;color:#94a3b8}
+.cm-som-acoes{grid-column:2;display:flex;flex-wrap:wrap;gap:6px}
+.cm-som-dlg button{min-height:34px;padding:0 12px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;color:#13213f;font:700 13px/1 inherit;cursor:pointer}
+.cm-som-dlg button.principal{background:#13285c;border-color:#13285c;color:#fff}
+.cm-som-dlg button:disabled{opacity:.45;cursor:not-allowed}
+.cm-som-bts{display:flex;justify-content:flex-end;margin-top:14px}
+</style>
+<script id="cm-som-certificados">
+// Painel de certificados: música ao destacar um nome. Toca em ciclo até o destaque fechar.
+// Pode ser a mesma para todos ou uma para cada tipo (1.º, 2.º, 3.º lugar e participação).
+// Os ficheiros ficam guardados neste navegador (IndexedDB); não vão para a nuvem.
+const CMSomCertificados=(()=>{
+ const DB='cortaMatoQuadro',LOJA='audios',CHAVE_MESMO='cm.som.mesmo';
+ const TIPOS=[['todos','Todos'],['1','1.º lugar'],['2','2.º lugar'],['3','3.º lugar'],['part','Participação']];
+ let ligacao=null,audio=null,aTocar=null,geracao=0,amostra=null;
+ const cache=new Map(),urls=new WeakMap();
+ const mesmo=()=>{try{return localStorage.getItem(CHAVE_MESMO)!=='0';}catch{return true;}};
+ function abrirDB(){
+  return ligacao||(ligacao=new Promise((ok,falha)=>{
+   const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains(LOJA))r.result.createObjectStore(LOJA);};
+   r.onsuccess=()=>ok(r.result);r.onerror=()=>falha(r.error);
+  }).catch(e=>{ligacao=null;throw e;}));
+ }
+ const pedido=(modo,f)=>abrirDB().then(db=>new Promise((ok,falha)=>{const tx=db.transaction(LOJA,modo),p=f(tx.objectStore(LOJA));tx.oncomplete=()=>ok(p?.result);tx.onerror=()=>falha(tx.error);}));
+ async function ler(k){if(cache.has(k))return cache.get(k);const v=await pedido('readonly',l=>l.get(k)).catch(()=>null);cache.set(k,v||null);return v||null;}
+ async function gravar(k,ficheiro){const v={nome:ficheiro.name,tipo:ficheiro.type,blob:ficheiro};await pedido('readwrite',l=>l.put(v,k));cache.set(k,v);}
+ async function apagar(k){await pedido('readwrite',l=>l.delete(k));cache.set(k,null);}
+ function url(v){if(!urls.has(v))urls.set(v,URL.createObjectURL(v.blob));return urls.get(v);}
+ async function tocar(tipo){
+  if(aTocar===tipo)return;
+  parar();aTocar=tipo;const n=++geracao;
+  const v=mesmo()?await ler('todos'):await ler(tipo);
+  if(n!==geracao||!v)return;
+  pararAmostra();
+  audio=new Audio(url(v));audio.loop=true;
+  audio.play().catch(e=>console.warn('Não foi possível tocar a música.',e));
+ }
+ function parar(){geracao++;aTocar=null;if(audio){audio.pause();audio.currentTime=0;audio=null;}}
+ function pararAmostra(){if(amostra){amostra.pause();amostra=null;}}
+ const el=(tag,props={},...filhos)=>{const e=document.createElement(tag);for(const [k,v] of Object.entries(props)){if(k==='on')for(const [ev,f] of Object.entries(v))e.addEventListener(ev,f);else if(k in e&&k!=='list')e[k]=v;else e.setAttribute(k,v);}e.append(...filhos.flat().filter(x=>x!=null&&x!==false));return e;};
+ async function resumo(){
+  if(mesmo()){const v=await ler('todos');return v?'A mesma música para todos: '+v.nome:'Sem música escolhida.';}
+  const partes=[];for(const [k,rot] of TIPOS.slice(1)){const v=await ler(k);if(v)partes.push(rot+': '+v.nome);}
+  return partes.length?partes.join(' · '):'Sem música escolhida.';
+ }
+ function abrir(aoFechar){
+  document.getElementById('cm-som-dlg')?.remove();
+  const lista=el('div',{}),chk=el('input',{type:'checkbox',id:'cm-som-mesmo'});chk.checked=mesmo();
+  const dlg=el('dialog',{id:'cm-som-dlg',className:'cm-som-dlg','aria-labelledby':'cm-som-titulo'},
+   el('h3',{id:'cm-som-titulo'},'Música dos certificados'),
+   el('p',{},'Toca quando clica no nome de um atleta no painel de certificados e continua até fechar o destaque. Os ficheiros ficam guardados neste computador.'),
+   el('label',{className:'cm-som-mesmo'},chk,'Usar a mesma música para todos'),
+   lista,
+   el('div',{className:'cm-som-bts'},el('button',{type:'button',className:'principal',on:{click:()=>dlg.close()}},'Fechar')));
+  chk.addEventListener('change',()=>{try{localStorage.setItem(CHAVE_MESMO,chk.checked?'1':'0');}catch{}parar();desenhar();});
+  async function desenhar(){
+   const tipos=chk.checked?[TIPOS[0]]:TIPOS.slice(1),linhas=[];
+   for(const [k,rot] of tipos){
+    const v=await ler(k),entrada=el('input',{type:'file',accept:'audio/*',hidden:true});
+    const nome=el('span',{className:'cm-som-ficheiro'+(v?'':' vazio'),title:v?.nome||''},v?v.nome:'Sem música');
+    entrada.addEventListener('change',async()=>{const f=entrada.files?.[0];if(!f)return;if(!/^audio\//.test(f.type)&&!/\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i.test(f.name)){alert('Escolha um ficheiro de áudio (MP3, WAV, OGG, M4A…).');return;}try{await gravar(k,f);}catch(e){alert('Não foi possível guardar a música neste navegador.');return;}parar();desenhar();});
+    const ouvir=el('button',{type:'button',disabled:!v,on:{click:()=>{if(amostra){pararAmostra();ouvir.textContent='Ouvir';return;}parar();amostra=new Audio(url(v));amostra.addEventListener('ended',()=>{amostra=null;ouvir.textContent='Ouvir';});amostra.play().catch(()=>{});ouvir.textContent='Parar';}}},'Ouvir');
+    linhas.push(el('div',{className:'cm-som-linha'},el('strong',{},rot),nome,
+     el('div',{className:'cm-som-acoes'},entrada,el('button',{type:'button',on:{click:()=>entrada.click()}},v?'Trocar…':'Escolher música…'),ouvir,
+      el('button',{type:'button',disabled:!v,on:{click:async()=>{pararAmostra();parar();await apagar(k).catch(()=>{});desenhar();}}},'Retirar'))));
+   }
+   lista.replaceChildren(...linhas);
+  }
+  dlg.addEventListener('close',()=>{pararAmostra();setTimeout(()=>dlg.remove(),0);if(typeof aoFechar==='function')aoFechar();});
+  document.body.append(dlg);dlg.showModal();desenhar();
+ }
+ // A escolha da música está nas «Configurações do quadro»; ao sair da entrega de certificados, a música para.
+ function ligarBotao(){
+  const bt=document.getElementById('cm-som-config'),estado=document.getElementById('cm-som-config-estado'),vista=document.getElementById('select-vista-quadro');
+  const atualizar=()=>resumo().then(t=>{if(estado)estado.textContent=t;}).catch(()=>{});
+  bt?.addEventListener('click',()=>abrir(atualizar));atualizar();
+  vista?.addEventListener('change',()=>{if(vista.value!=='entrega')parar();});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ligarBotao);else ligarBotao();
+ window.addEventListener('pagehide',parar);
+ return {tocar,parar,abrir};
+})();
+window.CMSomCertificados=CMSomCertificados;
+</script>
+<script id="cm-termo">
+// ---------- «Aluno» ou «Atleta» ----------
+// A prova escolhe a palavra (Editar prova). Troca-se em todo o texto visível, nos documentos antes de imprimir
+// e nas imagens desenhadas em canvas. Os valores dos campos de formulário e o texto a ser editado não mudam.
+const CMTermo=(()=>{
+ let termo=null,observador=null;
+ const SALTAR=new Set(['SCRIPT','STYLE','TEXTAREA','INPUT','NOSCRIPT','CODE','PRE']);
+ const casar=(orig,novo)=>orig.length>1&&orig===orig.toLocaleUpperCase('pt-PT')?novo.toLocaleUpperCase('pt-PT'):orig[0]!==orig[0].toLocaleLowerCase('pt-PT')?novo[0].toLocaleUpperCase('pt-PT')+novo.slice(1):novo;
+ function trocar(texto){
+  if(!termo||typeof texto!=='string'||!texto)return texto;
+  if(termo==='atleta'){
+   if(!/alun/i.test(texto))return texto;
+   return texto.replace(/\balun[oa]\([oa]\)/gi,m=>casar(m,'atleta')).replace(/\balun([oa])(s?)\b/gi,(m,g,s)=>casar(m,'atleta'+s));
+  }
+  if(!/atleta/i.test(texto))return texto;
+  return texto.replace(/\batleta(s?)\b/gi,(m,s)=>casar(m,'aluno'+s));
+ }
+ const ignorar=el=>SALTAR.has(el.tagName)||el.isContentEditable||!!el.closest?.('[data-cm-termo="nao"]');
+ function trocarNo(no){const v=no.nodeValue,n=trocar(v);if(n!==v)no.nodeValue=n;}
+ function trocarAtributos(el){for(const a of ['placeholder','title','aria-label']){const v=el.getAttribute?.(a);if(v){const n=trocar(v);if(n!==v)el.setAttribute(a,n);}}}
+ function varrer(raiz){
+  if(!termo||!raiz)return;
+  if(raiz.nodeType===3){if(raiz.parentElement&&!ignorar(raiz.parentElement))trocarNo(raiz);return;}
+  if(raiz.nodeType!==1&&raiz.nodeType!==9&&raiz.nodeType!==11)return;
+  if(raiz.nodeType===1&&ignorar(raiz))return;
+  const w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT|NodeFilter.SHOW_ELEMENT,{acceptNode:n=>n.nodeType===1?(ignorar(n)?NodeFilter.FILTER_REJECT:(trocarAtributos(n),NodeFilter.FILTER_SKIP)):NodeFilter.FILTER_ACCEPT});
+  if(raiz.nodeType===1)trocarAtributos(raiz);
+  let no;while((no=w.nextNode()))trocarNo(no);
+ }
+ function ligar(){
+  if(observador||typeof MutationObserver!=='function')return;
+  observador=new MutationObserver(registos=>{
+   if(!termo)return;
+   for(const r of registos){
+    if(r.type==='characterData'){if(r.target.parentElement&&!ignorar(r.target.parentElement))trocarNo(r.target);}
+    else if(r.type==='attributes')trocarAtributos(r.target);
+    else r.addedNodes.forEach(varrer);
+   }
+  });
+  observador.observe(document.documentElement,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label']});
+ }
+ // Imagens desenhadas em canvas (publicações, quadros): a palavra muda também aí.
+ if(typeof CanvasRenderingContext2D!=='undefined'){
+  const P=CanvasRenderingContext2D.prototype;
+  for(const m of ['fillText','strokeText','measureText']){const original=P[m];P[m]=function(t,...resto){return original.call(this,trocar(t),...resto);};}
+ }
+ // Antes de imprimir, o documento é revisto de uma vez (a impressão não espera pelo observador).
+ window.addEventListener('beforeprint',()=>{if(termo){varrer(document.body);document.title=trocar(document.title);}});
+ function definir(novo){
+  novo=novo==='atleta'||novo==='aluno'?novo:null;
+  if(novo===termo)return;
+  termo=novo;document.documentElement.dataset.termo=novo||'';
+  if(!termo)return;
+  ligar();
+  if(document.body)varrer(document.body);
+  document.title=trocar(document.title);
+ }
+ return {definir,trocar,varrer,get termo(){return termo;}};
+})();
+window.CMTermo=CMTermo;
+
+// A palavra segue a prova que esta página está a usar.
+setInterval(()=>{CMTermo.definir((()=>{try{return typeof currentProva!=='undefined'&&currentProva?currentProva.termo:null;}catch(e){return null;}})());},800);
+</script>
+</body>
 </html>
